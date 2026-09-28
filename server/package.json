@@ -1,0 +1,21 @@
+{
+  "name": "dealmind-server",
+  "version": "1.0.0",
+  "description": "DealMind B2B Negotiation Intelligence Backend",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@vectorize-io/hindsight-client": "^0.10.1",
+    "better-sqlite3": "^11.8.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "groq-sdk": "^0.15.0",
+    "uuid": "^11.0.5"
+  }
+}

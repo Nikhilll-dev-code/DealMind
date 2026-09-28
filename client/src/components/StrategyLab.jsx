@@ -1,0 +1,113 @@
+import React from 'react';
+import { FlaskConical, AlertCircle, ArrowRight, CheckCircle } from 'lucide-react';
+
+function StrategyCard({ strat, badge, highlighted, onSelect }) {
+  const badgeColors = {
+    'RECOMMENDED': 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+    'BALANCED': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+    'HIGH RISK': 'bg-rose-500/20 text-rose-400 border-rose-500/30',
+  };
+
+  return (
+    <div className={`flex flex-col bg-[#182030] border rounded-2xl p-6 space-y-4 ${highlighted ? 'border-emerald-500/40 shadow-lg shadow-emerald-500/10' : 'border-[#243048]'}`}>
+      {/* Header */}
+      <div className="space-y-1.5">
+        <span className={`inline-block px-2.5 py-0.5 rounded text-[10px] font-bold border ${badgeColors[badge] || badgeColors['BALANCED']}`}>{badge}</span>
+        <h3 className="text-base font-bold text-white">{strat.name}</h3>
+        <p className="text-xs text-blue-400 font-semibold">{strat.package}</p>
+      </div>
+
+      {/* Economics */}
+      <div className="p-3.5 rounded-xl bg-[#0f1622] border border-[#243048] space-y-2">
+        <div className="flex justify-between text-xs">
+          <span className="text-slate-400">Proposed concession:</span>
+          <span className="font-mono font-bold text-white">{strat.discountPercent}% (${strat.concessionValue.toLocaleString()})</span>
+        </div>
+        <div className="flex justify-between text-xs">
+          <span className="text-slate-400">Revenue retained vs request:</span>
+          <span className="font-mono font-bold text-emerald-400">+${strat.concessionSavings.toLocaleString()}</span>
+        </div>
+      </div>
+
+      {/* Tradeoffs */}
+      <div className="space-y-1">
+        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Trade-offs</p>
+        <p className="text-xs text-slate-300 leading-relaxed">{strat.tradeoffs}</p>
+      </div>
+
+      {/* Evidence */}
+      <div className="space-y-1">
+        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Historical Evidence</p>
+        <p className="text-xs text-slate-300 leading-relaxed">{strat.evidenceSupport}</p>
+      </div>
+
+      {/* Risk */}
+      <div className="flex items-start gap-2 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300">
+        <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+        <span>{strat.risk}</span>
+      </div>
+
+      <button
+        onClick={() => onSelect(strat)}
+        className={`w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition ${
+          highlighted
+            ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20'
+            : 'bg-[#243048] hover:bg-[#2d3d5c] text-slate-200'
+        }`}
+      >
+        <span>Select {strat.name.split('/')[0].trim()}</span>
+        <ArrowRight className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
+export default function StrategyLab({ strategyOptions, currentDeal, onSelectStrategy, onNavigateTab }) {
+  if (!strategyOptions) {
+    return (
+      <div className="p-12 text-center text-slate-400 space-y-4">
+        <FlaskConical className="w-10 h-10 text-slate-600 mx-auto" />
+        <p className="text-sm">Run an analysis first to see strategy options.</p>
+        <button onClick={() => onNavigateTab('deal-workspace')} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold">
+          New Negotiation
+        </button>
+      </div>
+    );
+  }
+
+  const strategies = [
+    { key: 'conservative', badge: 'RECOMMENDED' },
+    { key: 'balanced', badge: 'BALANCED' },
+    { key: 'aggressive', badge: 'HIGH RISK' },
+  ];
+
+  return (
+    <div className="p-8 max-w-6xl mx-auto space-y-6">
+      <div>
+        <div className="flex items-center gap-2 mb-1">
+          <FlaskConical className="w-5 h-5 text-blue-400" />
+          <h2 className="text-xl font-bold text-white">Strategy Lab</h2>
+        </div>
+        <p className="text-slate-400 text-sm">
+          Three evidence-backed options for <strong className="text-white">{currentDeal?.customer || 'this negotiation'}</strong> — ${Number(currentDeal?.dealValue || 0).toLocaleString()} deal with {currentDeal?.requestedDiscountPercent || 0}% requested discount.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {strategies.map(({ key, badge }) => {
+          const strat = strategyOptions[key];
+          if (!strat) return null;
+          return (
+            <StrategyCard
+              key={key}
+              strat={strat}
+              badge={badge}
+              highlighted={key === 'conservative'}
+              onSelect={(s) => onSelectStrategy(key, s)}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}

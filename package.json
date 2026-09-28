@@ -1,0 +1,16 @@
+{
+  "name": "dealmind",
+  "version": "1.0.0",
+  "description": "DealMind - Hindsight-Powered B2B Negotiation Intelligence Workspace",
+  "private": true,
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "start:server": "npm run start --prefix server",
+    "start:client": "npm run dev --prefix client",
+    "test:server": "npm test --prefix server",
+    "build:client": "npm run build --prefix client"
+  }
+}
