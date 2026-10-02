@@ -1,34 +1,56 @@
+
 # Dependencies
 node_modules/
-*/node_modules/
+**/node_modules/
 
-# Environment Variables
+# Environment files — allow example templates only
 .env
-.env.local
-.env.*.local
-server/.env
-client/.env
+.env.*
+!.env.example
+!.env.*.example
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
 
-# Production Builds
+# Build output
 dist/
 build/
-client/dist/
+coverage/
 
-# Database Files
-server/data/*.sqlite
-server/data/*.sqlite-journal
-server/data/*.db
+# SQLite databases and runtime files
 *.sqlite
 *.sqlite3
+*.db
+*.sqlite-*
+*.db-*
+*.sqlite-wal
+*.sqlite-shm
+*.db-wal
+*.db-shm
+
+# Runtime data — keep the directory placeholder
+server/data/*
+!server/data/.gitkeep
 
 # Logs
+*.log
+logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-*.log
 
-# Editor & OS Files
+# Caches and temporary files
+.cache/
+.parcel-cache/
+.turbo/
+.vite/
+tmp/
+temp/
+
+# OS and editor files
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
+Desktop.ini

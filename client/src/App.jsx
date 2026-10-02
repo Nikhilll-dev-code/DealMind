@@ -1,74 +1,87 @@
-import React, { useState, useEffect } from 'react';
-import Navbar from './components/Navbar';
-import Header from './components/Header';
-import OverviewDashboard from './components/OverviewDashboard';
-import NewNegotiation from './components/NewNegotiation';
-import DealWorkspace from './components/DealWorkspace';
-import DealsList from './components/DealsList';
-import MemoryExplorer from './components/MemoryExplorer';
-import LearningTimeline from './components/LearningTimeline';
-import DemoScreen from './components/DemoScreen';
-import SettingsView from './components/SettingsView';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ThemeProvider } from './context/ThemeContext';
+import { ToastProvider, useToast } from './context/ToastContext';
+import { RouteProvider, useRouter } from './context/RouteContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
+
+import AppLayout from './components/layout/AppLayout';
+import LoginView from './views/LoginView';
+import DashboardView from './views/DashboardView';
+import NegotiationsView from './views/NegotiationsView';
+import NewNegotiationView from './views/NewNegotiationView';
+import DealWorkspaceView from './views/DealWorkspaceView';
+import ApprovalsView from './views/ApprovalsView';
+import MemoryExplorerView from './views/MemoryExplorerView';
+import LearningTimelineView from './views/LearningTimelineView';
+import AgentActivityView from './views/AgentActivityView';
+import InfrastructureView from './views/InfrastructureView';
+import SettingsView from './views/SettingsView';
+import DemoView from './views/DemoView';
 
 import { 
   getHealth, 
   getNegotiations, 
   getMemories, 
+  getApprovals,
   analyzeNegotiation, 
   recordOutcome, 
-  resetDemo,
   getLearningTimeline 
 } from './services/api';
 
-export default function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+function MainRouter() {
+  const { pathname, navigate } = useRouter();
+  const { user, isAuthenticated, loading: authLoading, tenantId } = useAuth();
+  const toast = useToast();
+
   const [health, setHealth] = useState(null);
   const [negotiations, setNegotiations] = useState([]);
   const [memories, setMemories] = useState([]);
+  const [approvals, setApprovals] = useState([]);
   const [timeline, setTimeline] = useState([]);
-  
-  // Current active deal state
+
+  // Active Deal & Analysis state
   const [currentDeal, setCurrentDeal] = useState(null);
   const [analysis, setAnalysis] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
 
-  // Initial load
-  useEffect(() => {
-    refreshData();
-  }, []);
-
-  const refreshData = async () => {
+  const refreshGlobalData = useCallback(async () => {
     try {
-      const [h, negs, mems, tl] = await Promise.all([
+      const [h, negs, mems, apps, tl] = await Promise.all([
         getHealth().catch(() => ({ status: 'error' })),
-        getNegotiations().catch(() => []),
-        getMemories().catch(() => []),
-        getLearningTimeline().catch(() => [])
+        getNegotiations(tenantId).catch(() => []),
+        getMemories('', '', '').catch(() => ({ memories: [] })),
+        getApprovals(tenantId).catch(() => []),
+        getLearningTimeline(tenantId).catch(() => [])
       ]);
       setHealth(h);
       setNegotiations(Array.isArray(negs) ? negs : []);
-      setMemories(Array.isArray(mems) ? mems : []);
+      setMemories(mems?.memories || (Array.isArray(mems) ? mems : []));
+      setApprovals(Array.isArray(apps) ? apps : []);
       setTimeline(Array.isArray(tl) ? tl : []);
     } catch (err) {
-      console.error('Failed to load initial data:', err);
+      console.error('Failed to refresh data:', err);
     }
-  };
+  }, [tenantId]);
+
+  useEffect(() => {
+    refreshGlobalData();
+  }, [refreshGlobalData]);
 
   const handleRunAnalysis = async (dealData) => {
-    setLoading(true);
-    setError(null);
+    setAnalysisLoading(true);
     try {
       const result = await analyzeNegotiation(dealData);
       setAnalysis(result);
       setCurrentDeal(result.deal || dealData);
-      setActiveTab('deal-workspace');
+      const targetId = result.deal?.dealId || result.deal?.deal_id || 'DEAL-NEW';
+      navigate(`/deals/${encodeURIComponent(targetId)}`);
+      toast.success('Analysis Complete', `Generated strategy recommendation for ${dealData.customer}.`);
       return result;
     } catch (err) {
-      setError(err.message || 'Analysis failed');
+      toast.error('Analysis Failed', err.message);
       console.error(err);
     } finally {
-      setLoading(false);
+      setAnalysisLoading(false);
     }
   };
 
@@ -78,7 +91,7 @@ export default function App() {
       segment: deal.segment || 'enterprise',
       industry: deal.industry || 'technology',
       dealValue: Number(deal.initialOffer || deal.initial_offer || 100000),
-      objection: deal.objection || 'Price is too high',
+      objection: deal.objection || 'Price resistance',
       initialOffer: Number(deal.initialOffer || deal.initial_offer || 100000),
       counterOffer: Number(deal.counterOffer || deal.counter_offer || 80000),
       requestedDiscountPercent: Number(deal.requestedDiscountPercent || deal.requested_discount_percent || 20),
@@ -99,105 +112,156 @@ export default function App() {
         outcomeReason: notes || `Negotiation completed with ${outcomeType} outcome.`,
         finalPrice: Number(currentDeal.counterOffer || currentDeal.dealValue || 92000)
       });
-      await refreshData();
-      setActiveTab('learning-timeline');
+      await refreshGlobalData();
+      toast.success('Outcome Retained', `Deal experience retained in Hindsight long-term memory.`);
+      navigate('/learning');
     } catch (err) {
-      console.error('Failed to record outcome:', err);
+      toast.error('Failed to Record Outcome', err.message);
+      console.error(err);
     }
   };
 
-  const handleResetDemoData = async () => {
-    try {
-      await resetDemo();
-      await refreshData();
-      setAnalysis(null);
-      setCurrentDeal(null);
-      setActiveTab('dashboard');
-    } catch (err) {
-      console.error('Reset failed:', err);
+  // If at login route, render standalone login view
+  if (pathname === '/login') {
+    return <LoginView />;
+  }
+
+  // Determine active view from pathname
+  const renderRouteView = () => {
+    if (pathname === '/dashboard' || pathname === '/') {
+      return (
+        <DashboardView
+          negotiations={negotiations}
+          memories={memories}
+          pendingApprovals={approvals}
+          timeline={timeline}
+          onAnalyzeDeal={handleSelectDealForAnalysis}
+        />
+      );
     }
+
+    if (pathname === '/negotiations') {
+      return (
+        <NegotiationsView
+          negotiations={negotiations}
+          onAnalyzeDeal={handleSelectDealForAnalysis}
+        />
+      );
+    }
+
+    if (pathname === '/negotiations/new') {
+      return (
+        <NewNegotiationView
+          onRunAnalysis={handleRunAnalysis}
+          loading={analysisLoading}
+        />
+      );
+    }
+
+    if (pathname.startsWith('/deals/')) {
+      return (
+        <DealWorkspaceView
+          currentDeal={currentDeal}
+          analysis={analysis}
+          onRecordOutcomeQuick={handleRecordOutcomeQuick}
+          onOutcomeRecorded={refreshGlobalData}
+          onRefreshData={refreshGlobalData}
+        />
+      );
+    }
+
+    if (pathname === '/approvals') {
+      return (
+        <ApprovalsView
+          onRefreshGlobal={refreshGlobalData}
+        />
+      );
+    }
+
+    if (pathname === '/memory') {
+      return <MemoryExplorerView />;
+    }
+
+    if (pathname === '/learning') {
+      return <LearningTimelineView />;
+    }
+
+    if (pathname === '/agent-activity') {
+      return (
+        <AgentActivityView
+          agentTrace={analysis?.agentTrace || []}
+          currentDeal={currentDeal}
+        />
+      );
+    }
+
+    if (pathname === '/infrastructure') {
+      const canAccessInfra = user && (user.role === 'ADMIN' || user.role === 'MANAGER');
+      if (!canAccessInfra) {
+        return (
+          <div className="p-12 text-center text-slate-400 space-y-3 max-w-md mx-auto mt-12">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center mx-auto text-xl font-bold">
+              🔒
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Access Restricted</h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Infrastructure telemetry and outbox operations are restricted to Manager and Administrator roles.
+            </p>
+          </div>
+        );
+      }
+      return <InfrastructureView />;
+    }
+
+    if (pathname === '/settings') {
+      return (
+        <SettingsView
+          health={health}
+          onResetDemoGlobal={refreshGlobalData}
+        />
+      );
+    }
+
+    if (pathname === '/demo') {
+      return (
+        <DemoView
+          onRefreshGlobalData={refreshGlobalData}
+        />
+      );
+    }
+
+    // Default fallback
+    return (
+      <DashboardView
+        negotiations={negotiations}
+        memories={memories}
+        pendingApprovals={approvals}
+        timeline={timeline}
+        onAnalyzeDeal={handleSelectDealForAnalysis}
+      />
+    );
   };
 
   return (
-    <div className="flex h-screen w-full bg-[#0d121c] text-slate-100 overflow-hidden font-sans">
-      {/* Simplified Left Navigation Bar */}
-      <Navbar 
-        activeTab={activeTab} 
-        onSelectTab={setActiveTab} 
-        negotiationsCount={negotiations.length}
-      />
+    <AppLayout
+      currentDeal={currentDeal}
+      pendingApprovalsCount={approvals.length}
+    >
+      {renderRouteView()}
+    </AppLayout>
+  );
+}
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
-        <Header 
-          activeTab={activeTab}
-          currentDeal={currentDeal}
-          onNewNegotiation={() => setActiveTab('new-negotiation')}
-          onStartDemo={() => setActiveTab('demo')}
-          onOpenSettings={() => setActiveTab('settings')}
-        />
-
-        <main className="flex-1 overflow-y-auto min-w-0 bg-[#0d121c]">
-          {activeTab === 'dashboard' && (
-            <OverviewDashboard 
-              negotiations={negotiations}
-              memories={memories}
-              onAnalyzeDeal={handleSelectDealForAnalysis}
-              onNewNegotiation={() => setActiveTab('new-negotiation')}
-              onStartDemo={() => setActiveTab('demo')}
-            />
-          )}
-
-          {activeTab === 'new-negotiation' && (
-            <NewNegotiation 
-              onRunAnalysis={handleRunAnalysis}
-              loading={loading}
-            />
-          )}
-
-          {activeTab === 'deal-workspace' && (
-            <DealWorkspace 
-              currentDeal={currentDeal}
-              analysis={analysis}
-              onNewNegotiation={() => setActiveTab('new-negotiation')}
-              onRecordOutcomeQuick={handleRecordOutcomeQuick}
-              onOutcomeRecorded={refreshData}
-              onRefreshData={refreshData}
-            />
-          )}
-
-          {activeTab === 'deals-list' && (
-            <DealsList 
-              onAnalyzeDeal={handleSelectDealForAnalysis}
-            />
-          )}
-
-          {activeTab === 'memory-explorer' && (
-            <MemoryExplorer />
-          )}
-
-          {activeTab === 'learning-timeline' && (
-            <LearningTimeline 
-              timeline={timeline}
-              onRefresh={refreshData}
-            />
-          )}
-
-          {activeTab === 'demo' && (
-            <DemoScreen 
-              onFinishDemo={() => setActiveTab('dashboard')}
-              onRefreshGlobalData={refreshData}
-            />
-          )}
-
-          {activeTab === 'settings' && (
-            <SettingsView 
-              health={health}
-              onResetDemo={handleResetDemoData}
-            />
-          )}
-        </main>
-      </div>
-    </div>
+export default function App() {
+  return (
+    <ThemeProvider>
+      <ToastProvider>
+        <RouteProvider>
+          <AuthProvider>
+            <MainRouter />
+          </AuthProvider>
+        </RouteProvider>
+      </ToastProvider>
+    </ThemeProvider>
   );
 }

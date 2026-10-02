@@ -1,0 +1,3 @@
+# This directory holds the auto-generated SQLite database at runtime.
+# It is intentionally excluded from version control via .gitignore.
+# The database is automatically created and seeded on first server start.

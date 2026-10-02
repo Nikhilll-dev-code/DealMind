@@ -1,10 +1,11 @@
 import { db, normalizeCustomerId } from '../db/database.js';
 
-export function detectNegotiationPatterns(customerName, segment) {
+export function detectNegotiationPatterns(customerName, segment, options = {}) {
   const normalizedId = normalizeCustomerId(customerName);
+  const tenantId = options.tenantId || options.tenant_id || 'tenant_default';
 
-  const customerDeals = db.prepare(`SELECT * FROM negotiations WHERE customer_id = ?`).all(normalizedId);
-  const segmentDeals = db.prepare(`SELECT * FROM negotiations WHERE segment = ?`).all(segment);
+  const customerDeals = db.prepare(`SELECT * FROM negotiations WHERE customer_id = ? AND tenant_id = ?`).all(normalizedId, tenantId);
+  const segmentDeals = db.prepare(`SELECT * FROM negotiations WHERE segment = ? AND tenant_id = ?`).all(segment, tenantId);
 
   const patterns = [];
 

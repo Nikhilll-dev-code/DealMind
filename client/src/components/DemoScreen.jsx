@@ -33,6 +33,7 @@ export default function DemoScreen({ onFinishDemo, onRefreshGlobalData }) {
   const [loading, setLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [outcomeResult, setOutcomeResult] = useState(null);
+  const [selectedStrategyKey, setSelectedStrategyKey] = useState('conservative');
   const [timelineEvents, setTimelineEvents] = useState([]);
   const [error, setError] = useState(null);
 
@@ -55,14 +56,20 @@ export default function DemoScreen({ onFinishDemo, onRefreshGlobalData }) {
     setLoading(true);
     setError(null);
     try {
+      const strat = analysisResult?.strategyOptions?.[selectedStrategyKey] || {
+        discountPercent: 8,
+        package: '8% discount + premium support'
+      };
+      const finalPrice = Math.round(100000 * (1 - (strat.discountPercent || 8) / 100));
+
       const res = await recordOutcome('DEAL-003', {
         outcome: 'WON',
-        chosenStrategy: '8% discount + premium support',
-        outcomeReason: 'Customer accepted 8% discount after demonstrating value with premium support package.',
-        finalPrice: 92000
+        chosenStrategy: strat.package || strat.name || '8% discount + premium support',
+        outcomeReason: `Customer accepted ${strat.discountPercent}% concession package (${strat.name || 'Support First'}) after demonstrating value with bundled services.`,
+        finalPrice
       });
       setOutcomeResult(res);
-      const tl = await getLearningTimeline();
+      const tl = await getLearningTimeline().catch(() => []);
       setTimelineEvents(tl);
       if (onRefreshGlobalData) onRefreshGlobalData();
       setCurrentStep(6);
@@ -76,14 +83,15 @@ export default function DemoScreen({ onFinishDemo, onRefreshGlobalData }) {
   const handleRestartDemo = async () => {
     setLoading(true);
     try {
-      await resetDemo();
+      await resetDemo().catch(e => console.warn('Demo reset notice:', e.message));
       setAnalysisResult(null);
       setOutcomeResult(null);
+      setSelectedStrategyKey('conservative');
       setCurrentStep(1);
       setError(null);
       if (onRefreshGlobalData) onRefreshGlobalData();
     } catch (err) {
-      console.error(err);
+      console.error('Restart demo caught:', err);
     } finally {
       setLoading(false);
     }
@@ -188,50 +196,67 @@ export default function DemoScreen({ onFinishDemo, onRefreshGlobalData }) {
       )}
 
       {/* STEP 2: Hindsight Memory Recall */}
-      {currentStep === 2 && analysisResult && (
-        <div className="bg-[#161f2e] border border-[#20293a] rounded-3xl p-8 space-y-6 shadow-xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-purple-400 font-bold text-sm">
-              <span className="w-6 h-6 rounded-full bg-purple-600/20 flex items-center justify-center text-xs">2</span>
-              <span>Hindsight Memory Recall: 8 Historical Episodes Found</span>
-            </div>
-            <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
-              MEDIUM CONFIDENCE (62.5% Win Rate)
-            </span>
-          </div>
+      {currentStep === 2 && analysisResult && (() => {
+        const rawMemories = analysisResult.evidence?.memories || [];
+        // Deduplicate and scope to Acme Corp deals
+        const seen = new Set();
+        const acmeMemories = rawMemories.filter(m => {
+          const isAcme = m.customerId === 'acme-corp' || m.customer === 'Acme Corp';
+          const id = m.dealId || m.deal_id;
+          if (!isAcme || seen.has(id)) return false;
+          seen.add(id);
+          return true;
+        });
+        const wins = acmeMemories.filter(m => m.outcome === 'WON').length;
+        const losses = acmeMemories.filter(m => m.outcome === 'LOST').length;
+        const total = acmeMemories.length;
+        const winRate = total > 0 ? Math.round((wins / total) * 100) : 62.5;
 
-          <p className="text-slate-300 text-sm leading-relaxed">
-            Hindsight searched past enterprise negotiations for Acme Corp and recalled <strong>8 episodes: 5 WON and 3 LOST (62.5% win rate)</strong>.
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto pr-1">
-            {analysisResult.evidence.memories.map((m) => (
-              <div key={m.dealId || m.deal_id} className="p-3.5 rounded-xl bg-[#101622] border border-[#20293a] text-xs space-y-1">
-                <div className="flex justify-between font-bold">
-                  <span className="text-white font-mono">{m.dealId || m.deal_id} · {m.strategy}</span>
-                  <span className={m.outcome === 'WON' ? 'text-emerald-400' : 'text-rose-400'}>{m.outcome}</span>
-                </div>
-                <p className="text-slate-400 italic text-[11px]">"{m.outcomeReason || m.outcome_reason}"</p>
+        return (
+          <div className="bg-[#161f2e] border border-[#20293a] rounded-3xl p-8 space-y-6 shadow-xl">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-purple-400 font-bold text-sm">
+                <span className="w-6 h-6 rounded-full bg-purple-600/20 flex items-center justify-center text-xs">2</span>
+                <span>Hindsight Memory Recall: {total} Historical Episodes Found</span>
               </div>
-            ))}
-          </div>
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                {total >= 3 && winRate >= 70 ? 'HIGH' : total >= 3 ? 'MEDIUM' : 'LOW'} CONFIDENCE ({winRate}% Win Rate)
+              </span>
+            </div>
 
-          <div className="flex justify-between items-center pt-2">
-            <button
-              onClick={() => setCurrentStep(1)}
-              className="px-4 py-2 text-slate-400 hover:text-white text-xs font-bold"
-            >
-              ← Back
-            </button>
-            <button
-              onClick={() => setCurrentStep(3)}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition shadow-md shadow-blue-600/20"
-            >
-              View Recommendation →
-            </button>
+            <p className="text-slate-300 text-sm leading-relaxed">
+              Hindsight searched past enterprise negotiations for Acme Corp and recalled <strong>{total} episodes: {wins} WON and {losses} LOST ({winRate}% win rate)</strong>.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto pr-1">
+              {acmeMemories.map((m) => (
+                <div key={m.dealId || m.deal_id} className="p-3.5 rounded-xl bg-[#101622] border border-[#20293a] text-xs space-y-1">
+                  <div className="flex justify-between font-bold">
+                    <span className="text-white font-mono">{m.dealId || m.deal_id} · {m.strategy}</span>
+                    <span className={m.outcome === 'WON' ? 'text-emerald-400' : 'text-rose-400'}>{m.outcome}</span>
+                  </div>
+                  <p className="text-slate-400 italic text-[11px]">"{m.outcomeReason || m.outcome_reason}"</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-between items-center pt-2">
+              <button
+                onClick={() => setCurrentStep(1)}
+                className="px-4 py-2 text-slate-400 hover:text-white text-xs font-bold"
+              >
+                ← Back
+              </button>
+              <button
+                onClick={() => setCurrentStep(3)}
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition shadow-md shadow-blue-600/20"
+              >
+                View Recommendation →
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* STEP 3: Recommendation */}
       {currentStep === 3 && analysisResult && (
@@ -267,68 +292,116 @@ export default function DemoScreen({ onFinishDemo, onRefreshGlobalData }) {
       )}
 
       {/* STEP 4: Strategy Comparison */}
-      {currentStep === 4 && analysisResult && (
-        <div className="bg-[#161f2e] border border-[#20293a] rounded-3xl p-8 space-y-6 shadow-xl">
-          <div className="flex items-center gap-2 text-blue-400 font-bold text-sm">
-            <span className="w-6 h-6 rounded-full bg-blue-600/20 flex items-center justify-center text-xs">4</span>
-            <span>Strategy Lab: 3 Evidence-Backed Packages</span>
-          </div>
+      {currentStep === 4 && analysisResult && (() => {
+        const stratOptions = analysisResult.strategyOptions || {};
+        const packages = Object.entries(stratOptions);
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {Object.entries(analysisResult.strategyOptions || {}).map(([key, strat]) => (
-              <div key={key} className={`p-5 rounded-2xl bg-[#101622] border space-y-3 ${
-                key === 'conservative' ? 'border-emerald-500/40' : 'border-[#20293a]'
-              }`}>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                  key === 'conservative' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'
-                }`}>
-                  {key === 'conservative' ? 'RECOMMENDED' : key.toUpperCase()}
-                </span>
-                <h4 className="font-bold text-white text-sm">{strat.name}</h4>
-                <div className="text-xs text-slate-300 font-mono font-bold">{strat.discountPercent}% Discount</div>
-                <p className="text-[11px] text-slate-400">{strat.tradeoffs}</p>
+        return (
+          <div className="bg-[#161f2e] border border-[#20293a] rounded-3xl p-8 space-y-6 shadow-xl">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-blue-400 font-bold text-sm">
+                <span className="w-6 h-6 rounded-full bg-blue-600/20 flex items-center justify-center text-xs">4</span>
+                <span>Strategy Lab: 3 Evidence-Backed Packages</span>
               </div>
-            ))}
-          </div>
+              <span className="text-[11px] font-mono text-slate-400">Click any card to select active package</span>
+            </div>
 
-          <div className="flex justify-between items-center pt-2">
-            <button onClick={() => setCurrentStep(3)} className="px-4 py-2 text-slate-400 hover:text-white text-xs font-bold">
-              ← Back
-            </button>
-            <button onClick={() => setCurrentStep(5)} className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition shadow-md shadow-blue-600/20">
-              Record Outcome →
-            </button>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {packages.map(([key, strat]) => {
+                const isSelected = selectedStrategyKey === key;
+                return (
+                  <div 
+                    key={key} 
+                    onClick={() => setSelectedStrategyKey(key)}
+                    className={`p-5 rounded-2xl bg-[#101622] border space-y-3 cursor-pointer transition-all ${
+                      isSelected 
+                        ? 'border-indigo-500 ring-2 ring-indigo-500 bg-indigo-950/30 shadow-lg' 
+                        : 'border-[#20293a] hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                        key === 'conservative' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'
+                      }`}>
+                        {key === 'conservative' ? 'RECOMMENDED' : key.toUpperCase()}
+                      </span>
+                      {isSelected && (
+                        <span className="text-[10px] font-mono font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded">
+                          ✓ Selected
+                        </span>
+                      )}
+                    </div>
+                    <h4 className="font-bold text-white text-sm">{strat.name}</h4>
+                    <div className="text-xs text-slate-300 font-mono font-bold">{strat.discountPercent}% Discount</div>
+                    <p className="text-[11px] text-slate-400">{strat.tradeoffs}</p>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedStrategyKey(key);
+                      }}
+                      className={`w-full py-2 rounded-xl font-bold text-xs transition ${
+                        isSelected 
+                          ? 'bg-indigo-600 text-white' 
+                          : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                      }`}
+                    >
+                      {isSelected ? '✓ Active Strategy' : 'Select Package'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex justify-between items-center pt-2">
+              <button onClick={() => setCurrentStep(3)} className="px-4 py-2 text-slate-400 hover:text-white text-xs font-bold">
+                ← Back
+              </button>
+              <button onClick={() => setCurrentStep(5)} className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition shadow-md shadow-blue-600/20">
+                Record Outcome ({analysisResult.strategyOptions?.[selectedStrategyKey]?.name?.split('/')[0]?.trim() || 'Selected'}) →
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* STEP 5: Outcome Capture */}
-      {currentStep === 5 && (
-        <div className="bg-[#161f2e] border border-[#20293a] rounded-3xl p-8 space-y-6 shadow-xl">
-          <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
-            <span className="w-6 h-6 rounded-full bg-emerald-600/20 flex items-center justify-center text-xs">5</span>
-            <span>Record WON Outcome for DEAL-003</span>
+      {currentStep === 5 && (() => {
+        const activeStrat = analysisResult?.strategyOptions?.[selectedStrategyKey] || {
+          discountPercent: 8,
+          package: '8% discount + premium support',
+          name: 'Conservative / Support-First'
+        };
+        const agreedPrice = Math.round(100000 * (1 - (activeStrat.discountPercent || 8) / 100));
+
+        return (
+          <div className="bg-[#161f2e] border border-[#20293a] rounded-3xl p-8 space-y-6 shadow-xl">
+            <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
+              <span className="w-6 h-6 rounded-full bg-emerald-600/20 flex items-center justify-center text-xs">5</span>
+              <span>Record WON Outcome for DEAL-003</span>
+            </div>
+
+            <p className="text-slate-300 text-sm leading-relaxed">
+              Acme Corp agreed to the <strong className="text-emerald-400">{activeStrat.package || activeStrat.name}</strong> ({activeStrat.discountPercent}% concession) at <strong className="text-white font-mono">${agreedPrice.toLocaleString()}</strong>. Recording this outcome will retain the negotiation episode in Hindsight memory.
+            </p>
+
+            <div className="p-5 rounded-2xl bg-[#101622] border border-[#20293a] space-y-2 text-xs">
+              <div className="flex justify-between"><span className="text-slate-400">Deal:</span><span className="font-bold text-white">DEAL-003 (Acme Corp)</span></div>
+              <div className="flex justify-between"><span className="text-slate-400">Selected Strategy:</span><span className="font-bold text-indigo-400">{activeStrat.name}</span></div>
+              <div className="flex justify-between"><span className="text-slate-400">Final Agreed Price:</span><span className="font-bold text-white font-mono">${agreedPrice.toLocaleString()}</span></div>
+              <div className="flex justify-between"><span className="text-slate-400">Outcome:</span><span className="font-bold text-emerald-400">WON</span></div>
+            </div>
+
+            <button
+              onClick={handleRecordDemoOutcome}
+              disabled={loading}
+              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-2xl font-bold text-sm transition shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2"
+            >
+              {loading ? 'Retaining in Hindsight Memory...' : '✓ Record WON Outcome & Retain Memory'}
+            </button>
           </div>
-
-          <p className="text-slate-300 text-sm leading-relaxed">
-            Acme Corp agreed to the <strong className="text-emerald-400">8% discount + premium support package</strong> at <strong className="text-white font-mono">$92,000</strong>. Recording this outcome will retain the negotiation episode in Hindsight memory.
-          </p>
-
-          <div className="p-5 rounded-2xl bg-[#101622] border border-[#20293a] space-y-2 text-xs">
-            <div className="flex justify-between"><span className="text-slate-400">Deal:</span><span className="font-bold text-white">DEAL-003 (Acme Corp)</span></div>
-            <div className="flex justify-between"><span className="text-slate-400">Final Agreed Price:</span><span className="font-bold text-white font-mono">$92,000</span></div>
-            <div className="flex justify-between"><span className="text-slate-400">Outcome:</span><span className="font-bold text-emerald-400">WON</span></div>
-          </div>
-
-          <button
-            onClick={handleRecordDemoOutcome}
-            disabled={loading}
-            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-2xl font-bold text-sm transition shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2"
-          >
-            {loading ? 'Retaining in Hindsight Memory...' : '✓ Record WON Outcome & Retain Memory'}
-          </button>
-        </div>
-      )}
+        );
+      })()}
 
       {/* STEP 6: Learning & Memory Retain */}
       {currentStep === 6 && (

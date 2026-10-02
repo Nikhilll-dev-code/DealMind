@@ -11,11 +11,14 @@
   },
   "dependencies": {
     "@vectorize-io/hindsight-client": "^0.10.1",
+    "bcryptjs": "^3.0.3",
     "better-sqlite3": "^11.8.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "groq-sdk": "^0.15.0",
+    "ioredis": "^6.0.0",
+    "jsonwebtoken": "^9.0.3",
     "uuid": "^11.0.5"
   }
 }
