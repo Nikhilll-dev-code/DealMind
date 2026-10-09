@@ -43,7 +43,7 @@ export default function NegotiationsView({ negotiations = [], onAnalyzeDeal }) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <Briefcase className="w-6 h-6 text-indigo-500" />
+            <Briefcase className="w-6 h-6 text-dm-blue" />
             <h1 className="text-xl font-bold text-slate-900 dark:text-white">Negotiations Pipeline</h1>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -77,7 +77,7 @@ export default function NegotiationsView({ negotiations = [], onAnalyzeDeal }) {
             <select
               value={outcomeFilter}
               onChange={e => setOutcomeFilter(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:border-indigo-500"
+              className="bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:border-dm-blue"
             >
               <option value="ALL">All Outcomes</option>
               <option value="WON">WON</option>
@@ -89,7 +89,7 @@ export default function NegotiationsView({ negotiations = [], onAnalyzeDeal }) {
             <select
               value={segmentFilter}
               onChange={e => setSegmentFilter(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:border-indigo-500"
+              className="bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:border-dm-blue"
             >
               <option value="ALL">All Segments</option>
               <option value="enterprise">Enterprise</option>
@@ -101,7 +101,7 @@ export default function NegotiationsView({ negotiations = [], onAnalyzeDeal }) {
             <select
               value={sortBy}
               onChange={e => setSortBy(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:border-indigo-500"
+              className="bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:border-dm-blue"
             >
               <option value="date">Sort: Date (Recent)</option>
               <option value="value">Sort: Deal Value</option>
@@ -144,7 +144,7 @@ export default function NegotiationsView({ negotiations = [], onAnalyzeDeal }) {
                       key={dealId}
                       className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition group"
                     >
-                      <td className="px-5 py-3.5 font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                      <td className="px-5 py-3.5 font-mono font-bold text-dm-blue dark:text-indigo-400">
                         {dealId}
                       </td>
                       <td className="px-5 py-3.5 font-bold text-slate-900 dark:text-white">
@@ -173,7 +173,7 @@ export default function NegotiationsView({ negotiations = [], onAnalyzeDeal }) {
                           variant="ghost"
                           size="sm"
                           onClick={() => onAnalyzeDeal(deal)}
-                          className="group-hover:bg-indigo-600 group-hover:text-white transition"
+                          className="group-hover:bg-dm-blue group-hover:text-white transition"
                         >
                           Analyze <ChevronRight className="w-3.5 h-3.5 ml-1" />
                         </Button>

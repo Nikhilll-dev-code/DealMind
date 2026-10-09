@@ -39,7 +39,7 @@ export function ToastProvider({ children }) {
             success: 'bg-emerald-950/90 border-emerald-500/40 text-emerald-100 dark:bg-emerald-950/90 dark:border-emerald-500/40 dark:text-emerald-100',
             error: 'bg-rose-950/90 border-rose-500/40 text-rose-100 dark:bg-rose-950/90 dark:border-rose-500/40 dark:text-rose-100',
             warning: 'bg-amber-950/90 border-amber-500/40 text-amber-100 dark:bg-amber-950/90 dark:border-amber-500/40 dark:text-amber-100',
-            info: 'bg-slate-900/95 border-indigo-500/40 text-slate-100 dark:bg-slate-900/95 dark:border-indigo-500/40 dark:text-slate-100'
+            info: 'bg-slate-900/95 border-dm-blue/40 text-slate-100 dark:bg-slate-900/95 dark:border-indigo-500/40 dark:text-slate-100'
           };
           const Icon = {
             success: CheckCircle2,
@@ -52,7 +52,7 @@ export function ToastProvider({ children }) {
             success: 'text-emerald-400',
             error: 'text-rose-400',
             warning: 'text-amber-400',
-            info: 'text-indigo-400'
+            info: 'text-dm-blue'
           }[t.type];
 
           return (

@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,7 +8,7 @@
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-/* Light & Dark Root Default Backgrounds */
+/* DealMind 3.0 is light-first (spec §11). Dark remains available as an opt-in. */
 html.dark {
   color-scheme: dark;
   background-color: #0b0f19;
@@ -15,7 +17,7 @@ html.dark {
 
 html:not(.dark) {
   color-scheme: light;
-  background-color: #f8fafc;
+  background-color: #f7f9fc;
   color: #0f172a;
 }
 
@@ -32,7 +34,7 @@ html.dark ::-webkit-scrollbar-thumb {
   border-radius: 4px;
 }
 html.dark ::-webkit-scrollbar-thumb:hover {
-  background: #4f46e5;
+  background: #155eef;
 }
 
 html:not(.dark) ::-webkit-scrollbar {
@@ -47,10 +49,58 @@ html:not(.dark) ::-webkit-scrollbar-thumb {
   border-radius: 4px;
 }
 html:not(.dark) ::-webkit-scrollbar-thumb:hover {
-  background: #6366f1;
+  background: #155eef;
 }
 
 /* Monospace font */
 code, pre, .font-mono {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* ── Utility primitives ─────────────────────────────────────────── */
+@layer utilities {
+  .dm-grid-bg {
+    background-image:
+      linear-gradient(to right, rgba(21, 94, 239, 0.06) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(21, 94, 239, 0.06) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+
+  .dm-text-gradient {
+    background: linear-gradient(120deg, #0b3b91 0%, #155eef 55%, #155eef 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .dm-scroll-reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .dm-scroll-reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .dm-shimmer {
+    background: linear-gradient(90deg, rgba(21, 94, 239, 0.05) 25%, rgba(21, 94, 239, 0.14) 50%, rgba(21, 94, 239, 0.05) 75%);
+    background-size: 500px 100%;
+  }
+}
+
+/* Accessibility: honor reduced motion (spec §13) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .dm-scroll-reveal {
+    opacity: 1;
+    transform: none;
+  }
 }

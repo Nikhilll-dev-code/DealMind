@@ -30,7 +30,7 @@ import { connectAgentStream } from '../services/sseClient';
 import Card, { CardHeader, CardBody } from '../components/common/Card';
 import Button from '../components/common/Button';
 import Modal from '../components/common/Modal';
-import { ConfidenceBadge } from '../components/common/Badge';
+import { ConfidenceBadge, OutcomeBadge } from '../components/common/Badge';
 import StrategyLab from '../components/StrategyLab';
 import WhatIfSimulator from '../components/WhatIfSimulator';
 import CounterofferAdvisor from '../components/CounterofferAdvisor';
@@ -53,12 +53,12 @@ function EvidenceCard({ mem }) {
     }`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">{mem.dealId || mem.deal_id}</span>
+          <span className="font-mono text-xs font-bold text-dm-blue dark:text-indigo-400">{mem.dealId || mem.deal_id}</span>
           <span className="text-xs font-bold text-slate-900 dark:text-slate-100">{mem.customer}</span>
           <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
             isObservation 
               ? 'bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/30' 
-              : 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30'
+              : 'bg-dm-blue/15 text-dm-deep dark:text-indigo-300 border border-dm-blue/30'
           }`}>
             {isObservation ? 'Observation' : 'Confirmed Fact'}
           </span>
@@ -111,16 +111,22 @@ function EvidenceCard({ mem }) {
 export default function DealWorkspaceView({ 
   currentDeal, 
   analysis, 
+  initialTab,
   onRecordOutcomeQuick, 
   onOutcomeRecorded, 
   onRefreshData 
 }) {
   const { navigate } = useRouter();
   const toast = useToast();
-  const [workspaceTab, setWorkspaceTab] = useState('overview');
+  const [workspaceTab, setWorkspaceTab] = useState(initialTab || 'overview');
   const [showOutcomeModal, setShowOutcomeModal] = useState(false);
   const [liveStreamEvents, setLiveStreamEvents] = useState([]);
   const [isStreaming, setIsStreaming] = useState(false);
+
+  // Contextual navigation (spec §8): deep-link straight into an intelligence tool.
+  useEffect(() => {
+    if (initialTab) setWorkspaceTab(initialTab);
+  }, [initialTab]);
 
   // Active SSE live stream listener if active sessionId is present
   useEffect(() => {
@@ -137,6 +143,23 @@ export default function DealWorkspaceView({
 
     return () => client.close();
   }, [analysis?.sessionId]);
+
+  if (!analysis && currentDeal) {
+    return (
+      <div className="p-16 text-center text-slate-400 space-y-4 max-w-md mx-auto animate-in fade-in">
+        <div className="relative w-14 h-14 mx-auto flex items-center justify-center">
+          <div className="absolute inset-0 rounded-full border-2 border-dm-blue/30 border-t-dm-blue animate-spin" />
+          <Brain className="w-7 h-7 text-dm-blue animate-pulse" />
+        </div>
+        <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+          Analyzing {currentDeal.customer || 'Negotiation'}...
+        </h3>
+        <p className="text-xs text-slate-500 leading-relaxed">
+          Synthesizing historical precedents, calculating concession boundaries, and generating evidence-grounded recommendations.
+        </p>
+      </div>
+    );
+  }
 
   if (!analysis || !currentDeal) {
     return (
@@ -174,7 +197,7 @@ export default function DealWorkspaceView({
   const tabs = [
     { id: 'overview', label: 'Overview', icon: Brain },
     { id: 'give-get', label: 'Give-Get Intelligence', icon: ArrowRightLeft, badge: giveGetOptions?.recommendations?.length || 5 },
-    { id: 'lineage', label: 'Precedent Lineage', icon: GitCommit, badge: memories.length },
+    { id: 'lineage', label: 'Negotiation Patterns', icon: GitCommit, badge: memories.length },
     { id: 'conflict-matrix', label: 'Conflict Matrix', icon: Scale, badge: evidenceConflictMatrix?.hasConflict ? '!' : undefined },
     { id: 'what-if', label: 'What-If Comparator', icon: SlidersHorizontal },
     { id: 'strategies', label: 'Strategy Lab', icon: FlaskConical },
@@ -198,7 +221,7 @@ export default function DealWorkspaceView({
                 {deal.segment} · {deal.industry}
               </span>
               <ConfidenceBadge confidence={confidence.finalConfidence} tierLabel={confidence.evidenceTier?.label} />
-              <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 text-[11px] font-mono border border-indigo-500/30">
+              <span className="px-2.5 py-0.5 rounded-full bg-dm-blue/15 text-dm-deep dark:text-indigo-300 text-[11px] font-mono border border-dm-blue/30">
                 {reasoningMode}
               </span>
             </div>
@@ -207,29 +230,38 @@ export default function DealWorkspaceView({
               <span>Deal Value: <strong className="text-slate-900 dark:text-white font-mono">${Number(deal.dealValue).toLocaleString()}</strong></span>
               <span>Requested Concession: <strong className="text-rose-500 font-mono">{deal.requestedDiscountPercent}%</strong></span>
               <span>Competitor: <strong className={deal.competitorPressure ? 'text-amber-500' : 'text-emerald-500'}>{deal.competitorPressure ? 'Yes' : 'No'}</strong></span>
-              <span>Contract: <strong className="text-indigo-500 font-mono">{deal.contractYears} Year</strong></span>
+              <span>Contract: <strong className="text-dm-blue font-mono">{deal.contractYears} Year</strong></span>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <Button
-              variant="success"
-              icon={FileCheck2}
-              onClick={() => setShowOutcomeModal(true)}
-            >
-              Record Outcome
-            </Button>
+            {(deal.outcome === 'WON' || deal.outcome === 'LOST' || currentDeal.outcome === 'WON' || currentDeal.outcome === 'LOST') ? (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">
+                  Historical Record:
+                </span>
+                <OutcomeBadge outcome={deal.outcome || currentDeal.outcome} />
+              </div>
+            ) : (
+              <Button
+                variant="success"
+                icon={FileCheck2}
+                onClick={() => setShowOutcomeModal(true)}
+              >
+                Record Outcome
+              </Button>
+            )}
           </div>
         </div>
 
-        {/* Manager Approval Required Warning */}
+        {/* Admin Approval Required Warning (Two-Role spec §3, §57-58) */}
         {approval?.required && (
           <div className="mt-4 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="flex items-start gap-3">
               <ShieldAlert className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
               <div>
                 <div className="text-xs font-bold text-amber-600 dark:text-amber-300 flex items-center gap-2">
-                  <span>Manager Approval Escalation Required</span>
+                  <span>Approval Escalation Required</span>
                   <span className="px-2 py-0.2 rounded bg-amber-500/20 text-amber-700 dark:text-amber-200 text-[10px] font-mono font-bold">
                     Discount &gt; {approval.threshold}%
                   </span>
@@ -254,7 +286,7 @@ export default function DealWorkspaceView({
                 onClick={() => setWorkspaceTab(tab.id)}
                 className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
                   isActive
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                    ? 'bg-dm-blue text-white shadow-md shadow-dm-blue/20'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
               >
@@ -265,7 +297,7 @@ export default function DealWorkspaceView({
                     tab.badge === '!' 
                       ? 'bg-amber-500 text-white' 
                       : isActive 
-                        ? 'bg-indigo-700 text-white' 
+                        ? 'bg-dm-deep text-white' 
                         : 'bg-slate-200 dark:bg-slate-800 text-slate-500'
                   }`}>
                     {tab.badge}
@@ -297,7 +329,7 @@ export default function DealWorkspaceView({
           <Card className="p-6 space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <Brain className="w-5 h-5 text-indigo-500" />
+                <Brain className="w-5 h-5 text-dm-blue" />
                 <h2 className="font-bold text-slate-900 dark:text-white text-base">DealMind Grounded Recommendation</h2>
               </div>
               <span className="text-[11px] text-slate-500 font-mono">
@@ -305,8 +337,8 @@ export default function DealWorkspaceView({
               </span>
             </div>
 
-            <div className="p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/50">
-              <p className="font-bold text-indigo-900 dark:text-indigo-300 text-sm leading-relaxed">{recommendation.headline}</p>
+            <div className="p-4 rounded-2xl bg-dm-tint dark:bg-indigo-950/30 border border-dm-blue dark:border-indigo-800/50">
+              <p className="font-bold text-dm-deep dark:text-indigo-300 text-sm leading-relaxed">{recommendation.headline}</p>
             </div>
 
             <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed space-y-3">
@@ -329,13 +361,13 @@ export default function DealWorkspaceView({
 
           {/* Hindsight Strategic Reflection */}
           {reflection && (
-            <div className="p-5 rounded-3xl bg-gradient-to-r from-purple-950/40 via-indigo-950/20 to-slate-900 border border-purple-500/30 space-y-2">
+            <div className="p-5 rounded-3xl bg-dm-soft border border-dm-radium/40 space-y-2">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-purple-400" />
-                <span className="text-xs font-bold text-purple-300 uppercase tracking-wider">Hindsight Strategic Reflection</span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple-500/20 text-purple-300 border border-purple-500/30">Hindsight reflect()</span>
+                <Sparkles className="w-4 h-4 text-emerald-600" />
+                <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Hindsight Strategic Reflection</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-dm-radium/30 text-emerald-700 border border-dm-radium/40">Hindsight reflect()</span>
               </div>
-              <p className="text-xs text-slate-300 leading-relaxed">
+              <p className="text-xs text-dm-ink leading-relaxed">
                 {reflection}
               </p>
             </div>
@@ -360,7 +392,7 @@ export default function DealWorkspaceView({
                 </div>
                 <div className="flex items-center justify-between text-xs p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
                   <span className="text-slate-500">Recommended {economics.proposedDiscountPercent}% discount</span>
-                  <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">-${economics.proposedConcession.toLocaleString()}</span>
+                  <span className="font-mono font-bold text-dm-blue dark:text-indigo-400">-${economics.proposedConcession.toLocaleString()}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
                   <div>
@@ -377,7 +409,7 @@ export default function DealWorkspaceView({
             {/* Confidence Calibration */}
             <Card className="p-6 space-y-4">
               <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-                <ShieldCheck className="w-4 h-4 text-indigo-500" />
+                <ShieldCheck className="w-4 h-4 text-dm-blue" />
                 <h3 className="font-bold text-slate-900 dark:text-white text-sm">Confidence & Evidence Tier</h3>
               </div>
 
@@ -446,7 +478,7 @@ export default function DealWorkspaceView({
         />
       )}
 
-      {/* SUB-TAB: Feature B Precedent Lineage */}
+      {/* SUB-TAB: Negotiation Patterns (renamed from Precedent Lineage, spec §6) */}
       {workspaceTab === 'lineage' && (
         <PrecedentLineage 
           currentDeal={currentDeal}
@@ -534,15 +566,15 @@ export default function DealWorkspaceView({
         <Card className="p-6 space-y-5">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
             <div className="flex items-center gap-2.5">
-              <Activity className="w-5 h-5 text-indigo-500" />
+              <Activity className="w-5 h-5 text-dm-blue" />
               <div>
                 <h3 className="font-bold text-slate-900 dark:text-white text-base">Agent Activity & Tool Execution Trace</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">Verifiable trace of tool invocations, duration timings, and callers.</p>
               </div>
             </div>
             {isStreaming && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 animate-pulse">
-                <Radio className="w-3 h-3 text-indigo-400" /> SSE Live
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-dm-blue/20 text-dm-blue border border-dm-blue/30 animate-pulse">
+                <Radio className="w-3 h-3 text-dm-blue" /> SSE Live
               </span>
             )}
           </div>
@@ -552,7 +584,7 @@ export default function DealWorkspaceView({
               <div key={step.step} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5 flex-wrap">
-                    <span className="w-6 h-6 rounded-full bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xs font-mono font-bold">
+                    <span className="w-6 h-6 rounded-full bg-dm-blue/20 text-dm-blue dark:text-indigo-400 flex items-center justify-center text-xs font-mono font-bold">
                       {step.step}
                     </span>
                     <span className="font-mono text-xs font-bold text-purple-600 dark:text-purple-300">{step.tool}</span>

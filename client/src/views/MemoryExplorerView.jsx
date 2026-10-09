@@ -82,7 +82,7 @@ export default function MemoryExplorerView() {
             <span>Hindsight Bank: {cloudStatus?.bankId || 'dealmind'}</span>
           </div>
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-mono font-bold">
-            <HardDrive className="w-3.5 h-3.5 text-indigo-500" />
+            <HardDrive className="w-3.5 h-3.5 text-dm-blue" />
             <span>SQLite: {structuredDeals.length} Deals</span>
           </div>
         </div>
@@ -96,7 +96,7 @@ export default function MemoryExplorerView() {
             onClick={() => { setActiveTab('sqlite'); setSelectedItem(null); }}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
               activeTab === 'sqlite'
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                ? 'bg-dm-blue text-white shadow-md shadow-dm-blue/20'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
@@ -149,13 +149,13 @@ export default function MemoryExplorerView() {
                   onClick={() => setSelectedItem(deal)}
                   className={`p-4 rounded-2xl border transition cursor-pointer ${
                     selectedItem?.deal_id === deal.deal_id
-                      ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 shadow-md'
+                      ? 'bg-dm-tint dark:bg-indigo-950/40 border-dm-blue shadow-md'
                       : 'bg-white dark:bg-slate-900/90 border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-700'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">{deal.deal_id}</span>
+                      <span className="font-mono text-xs font-bold text-dm-blue dark:text-indigo-400">{deal.deal_id}</span>
                       <span className="text-xs font-bold text-slate-900 dark:text-white">{deal.customer}</span>
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 font-mono">
                         {deal.segment} · {deal.industry}

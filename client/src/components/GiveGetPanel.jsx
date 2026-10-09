@@ -56,7 +56,7 @@ export default function GiveGetPanel({
   const selectedOpt = options.find(o => o.id === selectedOptionId) || options[0];
 
   const categoryLabels = {
-    'TERM_COMMITMENT': { label: 'Contract Term', color: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30' },
+    'TERM_COMMITMENT': { label: 'Contract Term', color: 'bg-dm-blue/15 text-dm-blue border-dm-blue/30' },
     'PAYMENT_TERMS': { label: 'Cash Flow / Prepayment', color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
     'MARKETING_RIGHTS': { label: 'Advocacy & Co-Marketing', color: 'bg-purple-500/15 text-purple-400 border-purple-500/30' },
     'VOLUME_EXPANSION': { label: 'Volume Expansion', color: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
@@ -69,7 +69,7 @@ export default function GiveGetPanel({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <ArrowRightLeft className="w-5 h-5 text-indigo-500" />
+            <ArrowRightLeft className="w-5 h-5 text-dm-blue" />
             <h2 className="text-xl font-black text-slate-900 dark:text-white">Give-Get Negotiation Intelligence</h2>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -89,7 +89,7 @@ export default function GiveGetPanel({
 
       {loading ? (
         <div className="p-12 text-center text-slate-400">
-          <Clock className="w-8 h-8 animate-spin mx-auto mb-2 text-indigo-500" />
+          <Clock className="w-8 h-8 animate-spin mx-auto mb-2 text-dm-blue" />
           <p className="text-xs">Computing reciprocal give-get matrices...</p>
         </div>
       ) : (
@@ -110,7 +110,7 @@ export default function GiveGetPanel({
                   onClick={() => setSelectedOptionId(opt.id)}
                   className={`p-4 rounded-2xl border cursor-pointer transition-all duration-150 space-y-2.5 ${
                     isSelected 
-                      ? 'bg-indigo-600/10 dark:bg-indigo-950/40 border-indigo-500 shadow-md ring-1 ring-indigo-500' 
+                      ? 'bg-dm-blue/10 dark:bg-indigo-950/40 border-dm-blue shadow-md ring-1 ring-dm-blue' 
                       : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
@@ -137,7 +137,7 @@ export default function GiveGetPanel({
                   </div>
 
                   <div className="flex items-center justify-between text-[11px] font-mono pt-1 border-t border-slate-200/50 dark:border-slate-800/50">
-                    <span className="text-slate-500">Give: <strong className="text-indigo-600 dark:text-indigo-400">{opt.give.concessionPercent}%</strong></span>
+                    <span className="text-slate-500">Give: <strong className="text-dm-blue dark:text-indigo-400">{opt.give.concessionPercent}%</strong></span>
                     <span className="text-emerald-600 dark:text-emerald-400 font-bold">{opt.financialImpact.formattedSavings} retained</span>
                   </div>
                 </div>
@@ -148,11 +148,11 @@ export default function GiveGetPanel({
           {/* Right Column: Deep-Dive Package Inspector */}
           {selectedOpt && (
             <div className="lg:col-span-7 space-y-4">
-              <Card className="p-6 space-y-5 border-indigo-500/30 shadow-lg">
+              <Card className="p-6 space-y-5 border-dm-blue/30 shadow-lg">
                 {/* Header */}
                 <div className="flex items-start justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                   <div>
-                    <span className="text-[10px] font-mono uppercase font-bold text-indigo-600 dark:text-indigo-400">
+                    <span className="text-[10px] font-mono uppercase font-bold text-dm-blue dark:text-indigo-400">
                       Reciprocal Agreement Blueprint
                     </span>
                     <h3 className="text-lg font-black text-slate-900 dark:text-white">
@@ -169,12 +169,12 @@ export default function GiveGetPanel({
                 {/* THE GIVE & THE GET COMPARISON */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {/* WE GIVE */}
-                  <div className="p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/40 space-y-2">
+                  <div className="p-4 rounded-2xl bg-dm-tint dark:bg-indigo-950/30 border border-dm-blue dark:border-indigo-800/40 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase text-indigo-700 dark:text-indigo-400 tracking-wider">
+                      <span className="text-[10px] font-black uppercase text-dm-deep dark:text-indigo-400 tracking-wider">
                         1. WE GIVE (Concession)
                       </span>
-                      <span className="font-mono text-xs font-black text-indigo-600 dark:text-indigo-300">
+                      <span className="font-mono text-xs font-black text-dm-blue dark:text-indigo-300">
                         {selectedOpt.give.concessionPercent}% Off
                       </span>
                     </div>
@@ -219,7 +219,7 @@ export default function GiveGetPanel({
                     </div>
                     <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                       <div className="text-[10px] text-slate-400">Total Contract Value</div>
-                      <div className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400 mt-0.5">
+                      <div className="font-mono text-xs font-bold text-dm-blue dark:text-indigo-400 mt-0.5">
                         {selectedOpt.financialImpact.formattedTCV}
                       </div>
                     </div>

@@ -5,9 +5,17 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load .env from server directory or parent directory if available
-dotenv.config({ path: path.join(__dirname, '../.env') });
-dotenv.config({ path: path.join(__dirname, '../../.env') });
+// The real server config lives in server/.env by default.
+// Allow an explicit SERVER_ENV to point at a different env file when needed.
+const explicitServerEnv = process.env.SERVER_ENV_FILE || process.env.SERVER_ENV;
+if (explicitServerEnv) {
+  dotenv.config({ path: explicitServerEnv });
+} else {
+  // Check server/.env (parent of src) and fallback to .env in cwd/src
+  dotenv.config({ path: path.join(__dirname, '../.env') });
+  dotenv.config({ path: path.join(__dirname, '.env') });
+  dotenv.config();
+}
 
 export const config = {
   port: Number(process.env.PORT) || 5000,

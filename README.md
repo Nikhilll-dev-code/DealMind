@@ -32,16 +32,18 @@ Outcome Recorded → Retained in Hindsight → Future Deals Improve
 | Feature | Description |
 | :--- | :--- |
 | 🧠 **Hindsight Organizational Memory** | Retains and recalls structured negotiation experiences — customer, objection, concession %, competitor pressure, outcome |
+| ⚡ **High-Speed Intelligence Engine** | Parallel tool execution (<10ms) + single-pass Groq synthesis with instant caching |
 | 🤖 **Groq Multi-Model AI Router** | 3-model fallback chain (GPT-OSS 120B → Qwen 27B → GPT-OSS 20B) with per-model token budgeting and rate-limit classification (TPD / ITPM / OTPM / TPM / RPM) |
 | 📊 **Deterministic Confidence Engine** | Mathematically calibrated win-rate evidence tiers (NONE / PRELIMINARY / EMERGING / ESTABLISHED) with automated conflict detection |
 | 💰 **Concession Economics Engine** | Zero-hallucination financial math — requested vs proposed concession delta, COGS deduction, multi-year TCV |
 | 🧪 **What-If Simulator** | Real-time scenario modeling: adjust discount %, contract term, and support bundles independently |
 | 💬 **Counteroffer Advisor** | Evidence-grounded response scripts grounded in past customer-specific deals |
 | 🧩 **Strategy Lab** | Conservative / Balanced / Aggressive strategy packages with full economics breakdown |
-| 🔐 **RBAC & Governance** | Salesperson / Manager / Admin roles, mandatory decision notes, anti-self-approval, multi-tenant isolation |
+| 🔄 **Dataset Upload & Demo Reset** | Upload custom CSV/JSON datasets with clean sync, or restore canonical Acme Corp demo data at any time |
+| 🏢 **Multi-Tenant Architecture** | Cryptographic & logical tenant isolation across SQLite, Hindsight memories, Redis caches, and JWT tokens |
+| 🔐 **RBAC & Governance** | Sales Representative & Administrator roles, mandatory decision notes, anti-self-approval |
 | 📬 **Transactional Outbox** | Guaranteed SQLite-to-Hindsight delivery with exponential jitter retry and checkpoint replay |
 | 📡 **SSE Live Streaming** | Real-time agent execution traces streamed to the frontend |
-| 🎬 **60-Second Guided Demo** | Interactive 6-step walkthrough demonstrating the complete memory learning lifecycle |
 
 ---
 
@@ -56,7 +58,7 @@ Outcome Recorded → Retained in Hindsight → Future Deals Improve
                            ▼
 ┌─────────────────────────────────────────────────────────────┐
 │               Node.js + Express API Server                  │
-│         (JWT Auth, RBAC Middleware, Rate Limiting)          │
+│   (JWT Auth, Multi-Tenant Scoping, RBAC, Rate Limiting)     │
 └────────┬──────────────┬──────────────┬──────────────────────┘
          │              │              │
     ┌────▼─────┐  ┌─────▼─────┐  ┌───▼──────────┐
@@ -72,14 +74,14 @@ Outcome Recorded → Retained in Hindsight → Future Deals Improve
 ```
 
 **Backend Services:**
-- `agentOrchestrator.js` — Autonomous tool-calling agent loop with compact serialization
+- `agentOrchestrator.js` — High-speed parallel intelligence engine & fast synthesis
 - `groqAdapter.js` — Multi-model router, per-model token budgeting, OTPM/ITPM/TPD/TPM error classification
-- `hindsightAdapter.js` — Cloud memory retain/recall/reflect with SQLite fallback
+- `hindsightAdapter.js` — Cloud memory retain/recall/reflect with SQLite fallback & 600ms fast guard
 - `confidenceEngine.js` — Evidence tier calibration and conflict matrix
 - `economicsEngine.js` — Deterministic concession math, strategy lab, give-get packages
 - `approvalEngine.js` — RBAC governance, anti-self-approval, mandatory notes enforcement
 - `checkpointManager.js` — Agent session state with idempotent replay
-- `redisAdapter.js` — Distributed rate limiting, token budgets, concurrency slots
+- `redisAdapter.js` — Distributed rate limiting, token budgets, safeCache caching
 
 ---
 
@@ -121,22 +123,23 @@ HINDSIGHT_API_KEY=hsk_...    # optional
 ### 3. Run the Application
 
 ```bash
-# Terminal 1 — Backend
+# Terminal 1 — Backend (Port 5000)
 npm run start:server
 
-# Terminal 2 — Frontend
+# Terminal 2 — Frontend (Port 3000)
 npm run start:client
 ```
 
-Open [http://localhost:5173](http://localhost:5173) in your browser.
+Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 
 **Demo Credentials (auto-seeded):**
 
 | Role | Email | Password |
 | :--- | :--- | :--- |
-| Admin | `admin@dealmind.local` | `Password123!` |
-| Manager | `manager@dealmind.local` | `Password123!` |
-| Salesperson | `sales@dealmind.local` | `Password123!` |
+| **Administrator** | `admin@dealmind.local` | `Password123!` |
+| **Sales Representative** | `sales@dealmind.local` | `Password123!` |
+
+*(You can also quickly switch roles anytime via the top-right profile menu).*
 
 ### 4. Run Tests
 
@@ -164,32 +167,42 @@ dealmind/
 │   │   │   ├── WhatIfSimulator.jsx
 │   │   │   ├── CounterofferAdvisor.jsx
 │   │   │   ├── StrategyLab.jsx
+│   │   │   ├── CustomerProfile.jsx
 │   │   │   ├── PrecedentLineage.jsx
 │   │   │   ├── EvidenceConflictMatrix.jsx
 │   │   │   └── GiveGetPanel.jsx
 │   │   ├── views/             # Page-level views
 │   │   │   ├── DealWorkspaceView.jsx
+│   │   │   ├── DashboardView.jsx
+│   │   │   ├── NegotiationsView.jsx
+│   │   │   ├── NewNegotiationView.jsx
 │   │   │   ├── ApprovalsView.jsx
-│   │   │   ├── MemoryExplorerView.jsx
+│   │   │   ├── SalesMemoryView.jsx
 │   │   │   ├── LearningTimelineView.jsx
-│   │   │   └── DemoView.jsx
+│   │   │   ├── AgentActivityView.jsx
+│   │   │   └── admin/
+│   │   │       ├── AdminOverviewView.jsx
+│   │   │       ├── AdminDatasetView.jsx
+│   │   │       ├── AdminGuardrailsView.jsx
+│   │   │       ├── AdminUsersView.jsx
+│   │   │       └── AdminAnalyticsView.jsx
 │   │   ├── services/api.js    # API client
-│   │   └── context/           # Auth + Toast context
+│   │   └── context/           # Auth, Route, Theme & Toast context
 │   └── package.json
 │
 ├── server/                    # Node.js + Express Backend
 │   ├── src/
 │   │   ├── services/
-│   │   │   ├── agentOrchestrator.js   # AI agent loop
-│   │   │   ├── groqAdapter.js         # Multi-model router
-│   │   │   ├── hindsightAdapter.js    # Memory layer
+│   │   │   ├── agentOrchestrator.js   # Parallel AI agent loop & caching
+│   │   │   ├── groqAdapter.js         # Multi-model router & rate limiting
+│   │   │   ├── hindsightAdapter.js    # Memory layer (Retain/Recall/Reflect)
 │   │   │   ├── confidenceEngine.js    # Evidence calibration
-│   │   │   ├── economicsEngine.js     # Concession math
-│   │   │   ├── approvalEngine.js      # RBAC governance
+│   │   │   ├── economicsEngine.js     # Concession math & Give-Get
+│   │   │   ├── approvalEngine.js      # RBAC governance & approvals
 │   │   │   ├── patternEngine.js       # Behavioral patterns
-│   │   │   └── redisAdapter.js        # Rate limiting
-│   │   ├── db/database.js             # SQLite schema + seeding
-│   │   ├── routes/api.js              # All API routes
+│   │   │   └── redisAdapter.js        # SafeCache & rate limiting
+│   │   ├── db/database.js             # SQLite multi-tenant schema & seeding
+│   │   ├── routes/api.js              # REST & SSE endpoints
 │   │   ├── middleware/authMiddleware.js
 │   │   ├── config/permissions.js      # RBAC constants
 │   │   └── config.js                  # Environment config

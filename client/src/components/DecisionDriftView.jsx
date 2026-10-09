@@ -42,7 +42,7 @@ export default function DecisionDriftView({ currentDeal }) {
   if (loading) {
     return (
       <div className="p-12 text-center text-slate-400">
-        <Clock className="w-8 h-8 animate-spin mx-auto mb-2 text-indigo-500" />
+        <Clock className="w-8 h-8 animate-spin mx-auto mb-2 text-dm-blue" />
         <p className="text-xs">Computing decision lifecycle drift telemetry...</p>
       </div>
     );
@@ -54,14 +54,14 @@ export default function DecisionDriftView({ currentDeal }) {
         <GitMerge className="w-10 h-10 mx-auto text-slate-500" />
         <h4 className="text-sm font-bold text-slate-900 dark:text-white">Decision Drift Not Yet Available</h4>
         <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-          Decision drift compares the 4-stage lifecycle (AI Recommendation → Manager Review → Rep Concession → Final Outcome). Once an outcome or approval is recorded, full attribution variance will appear here.
+          Decision drift compares the 4-stage lifecycle (AI Recommendation → Admin Approval → Rep Concession → Final Outcome). Once an outcome or approval is recorded, full attribution variance will appear here.
         </p>
       </Card>
     );
   }
 
   const { stages, driftAnalysis } = driftData;
-  const { step1_aiRecommendation, step2_managerGovernance, step3_salespersonExecution, step4_recordedOutcome } = stages;
+  const { step1_aiRecommendation, step2_adminApproval, step3_salespersonExecution, step4_recordedOutcome } = stages;
 
   const isWon = step4_recordedOutcome.outcome === 'WON';
 
@@ -70,13 +70,13 @@ export default function DecisionDriftView({ currentDeal }) {
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <GitMerge className="w-5 h-5 text-indigo-500" />
+          <GitMerge className="w-5 h-5 text-dm-blue" />
           <h2 className="text-xl font-black text-slate-900 dark:text-white">
             Decision Drift & Outcome Attribution
           </h2>
         </div>
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          Trace concession drift across AI recommendation, manager governance, sales rep execution, and final customer outcome.
+          Trace concession drift across AI recommendation, admin approval, sales rep execution, and final customer outcome.
         </p>
       </div>
 
@@ -84,7 +84,7 @@ export default function DecisionDriftView({ currentDeal }) {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-1">
           <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">AI Proposed Baseline</div>
-          <div className="text-2xl font-black font-mono text-indigo-600 dark:text-indigo-400">
+          <div className="text-2xl font-black font-mono text-dm-blue dark:text-indigo-400">
             {driftAnalysis.aiProposedDiscount}%
           </div>
           <p className="text-[11px] text-slate-500">Initial agent recommendation</p>
@@ -105,7 +105,7 @@ export default function DecisionDriftView({ currentDeal }) {
               ? 'text-emerald-500' 
               : driftAnalysis.totalConcessionDrift > 0 
                 ? 'text-rose-500' 
-                : 'text-indigo-400'
+                : 'text-dm-blue'
           }`}>
             {driftAnalysis.totalConcessionDrift > 0 ? `+${driftAnalysis.totalConcessionDrift}%` : `${driftAnalysis.totalConcessionDrift}%`}
           </div>
@@ -123,15 +123,15 @@ export default function DecisionDriftView({ currentDeal }) {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 relative">
           {/* Stage 1: AI Recommendation */}
-          <div className="p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800/40 space-y-2">
+          <div className="p-4 rounded-2xl bg-dm-tint/50 dark:bg-indigo-950/20 border border-dm-blue dark:border-indigo-800/40 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="w-6 h-6 rounded-full bg-indigo-600 text-white font-mono text-xs font-bold flex items-center justify-center">
+              <span className="w-6 h-6 rounded-full bg-dm-blue text-white font-mono text-xs font-bold flex items-center justify-center">
                 1
               </span>
-              <Brain className="w-4 h-4 text-indigo-500" />
+              <Brain className="w-4 h-4 text-dm-blue" />
             </div>
             <div>
-              <div className="text-[10px] font-bold uppercase text-indigo-600 dark:text-indigo-400">AI Recommendation</div>
+              <div className="text-[10px] font-bold uppercase text-dm-blue dark:text-indigo-400">AI Recommendation</div>
               <div className="font-mono text-base font-bold text-slate-900 dark:text-white mt-0.5">
                 {step1_aiRecommendation.proposedDiscountPercent}% Concession
               </div>
@@ -141,7 +141,7 @@ export default function DecisionDriftView({ currentDeal }) {
             </p>
           </div>
 
-          {/* Stage 2: Manager Governance */}
+          {/* Stage 2: Admin Approval */}
           <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-2">
             <div className="flex items-center justify-between">
               <span className="w-6 h-6 rounded-full bg-purple-600 text-white font-mono text-xs font-bold flex items-center justify-center">
@@ -150,17 +150,17 @@ export default function DecisionDriftView({ currentDeal }) {
               <ShieldCheck className="w-4 h-4 text-purple-500" />
             </div>
             <div>
-              <div className="text-[10px] font-bold uppercase text-purple-600 dark:text-purple-400">Manager Governance</div>
+              <div className="text-[10px] font-bold uppercase text-purple-600 dark:text-purple-400">Admin Approval</div>
               <div className="font-mono text-base font-bold text-slate-900 dark:text-white mt-0.5">
-                {step2_managerGovernance.status}
+                {step2_adminApproval.status}
               </div>
             </div>
             <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-              {step2_managerGovernance.decisionNotes || 'Standard threshold (no escalation required).'}
+              {step2_adminApproval.decisionNotes || 'Standard threshold (no escalation required).'}
             </p>
-            {step2_managerGovernance.managerName !== 'N/A' && (
+            {step2_adminApproval.approverName !== 'N/A' && (
               <div className="text-[10px] font-mono text-slate-400">
-                Reviewer: {step2_managerGovernance.managerName}
+                Reviewer: {step2_adminApproval.approverName}
               </div>
             )}
           </div>

@@ -24,7 +24,7 @@ export default function CustomerProfile({ customerId = 'acme-corp' }) {
   if (loading) {
     return (
       <div className="p-12 text-center text-slate-500">
-        <Building2 className="w-8 h-8 mx-auto mb-2 animate-pulse text-indigo-500" />
+        <Building2 className="w-8 h-8 mx-auto mb-2 animate-pulse text-dm-blue" />
         <p className="text-xs font-semibold">Loading customer negotiation history...</p>
       </div>
     );
@@ -52,7 +52,7 @@ export default function CustomerProfile({ customerId = 'acme-corp' }) {
   return (
     <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-6 animate-in fade-in duration-150">
       {/* Customer Header */}
-      <div className="bg-gradient-to-r from-brand-900/40 via-indigo-900/20 to-slate-900 border border-brand-500/20 rounded-2xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-gradient-to-r from-brand-900/40 via-dm-deep/20 to-slate-900 border border-brand-500/20 rounded-2xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-brand-600/20 border border-brand-500/40 flex items-center justify-center">
             <Building2 className="w-6 h-6 text-brand-400" />

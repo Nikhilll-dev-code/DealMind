@@ -45,7 +45,7 @@ export default function EvidenceConflictMatrix({
     'STRONG_ALIGNMENT': { label: 'Strong Evidence Alignment', color: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' },
     'MODERATE_CONFLICT': { label: 'Moderate Conflict Detected', color: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30' },
     'HIGH_CONFLICT': { label: 'High Conflict Pattern', color: 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30' },
-    'MIXED_EVIDENCE': { label: 'Mixed Precedent Cluster', color: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/30' },
+    'MIXED_EVIDENCE': { label: 'Mixed Precedent Cluster', color: 'bg-dm-blue/15 text-dm-blue dark:text-indigo-400 border-dm-blue/30' },
     'ZERO_EVIDENCE': { label: 'Zero Evidence Baseline', color: 'bg-slate-200 dark:bg-slate-800 text-slate-500 border-slate-300 dark:border-slate-700' },
     'INSUFFICIENT_EVIDENCE': { label: 'Insufficient Evidence', color: 'bg-slate-200 dark:bg-slate-800 text-slate-500 border-slate-300 dark:border-slate-700' }
   };
@@ -58,7 +58,7 @@ export default function EvidenceConflictMatrix({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Scale className="w-5 h-5 text-indigo-500" />
+            <Scale className="w-5 h-5 text-dm-blue" />
             <h2 className="text-xl font-black text-slate-900 dark:text-white">
               Evidence Conflict & Agreement Matrix
             </h2>
@@ -114,12 +114,12 @@ export default function EvidenceConflictMatrix({
           <p className="text-[10px] text-slate-500">Lost deals on direct discount</p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-500/30 space-y-1">
-          <div className="flex items-center justify-between text-indigo-600 dark:text-indigo-400">
+        <div className="p-4 rounded-2xl bg-dm-tint dark:bg-indigo-950/20 border border-dm-blue/30 space-y-1">
+          <div className="flex items-center justify-between text-dm-blue dark:text-indigo-400">
             <span className="text-[10px] uppercase font-bold tracking-wider">Customer-Specific</span>
             <Building2 className="w-4 h-4" />
           </div>
-          <div className="text-2xl font-black font-mono text-indigo-600 dark:text-indigo-400">
+          <div className="text-2xl font-black font-mono text-dm-blue dark:text-indigo-400">
             {metrics.customerSpecificCount}
           </div>
           <p className="text-[10px] text-slate-500">Direct account history</p>
@@ -162,7 +162,7 @@ export default function EvidenceConflictMatrix({
               {supportingPrecedents.map((p) => (
                 <div key={p.dealId} className="p-3.5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">{p.dealId} ({p.customer})</span>
+                    <span className="font-mono text-xs font-bold text-dm-blue dark:text-indigo-400">{p.dealId} ({p.customer})</span>
                     <span className="font-mono text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 px-2 py-0.2 rounded">
                       WON · {p.concessionPercent}% Off
                     </span>

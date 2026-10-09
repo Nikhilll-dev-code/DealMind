@@ -72,6 +72,40 @@ export function initDatabase() {
       outcome TEXT NOT NULL,
       outcome_reason TEXT NOT NULL,
       chosen_strategy TEXT,
+      customer_user_id TEXT,
+      status TEXT NOT NULL DEFAULT 'ACTIVE',
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS guardrails (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id TEXT NOT NULL DEFAULT 'tenant_default',
+      max_discount_percent REAL NOT NULL DEFAULT 25,
+      manager_approval_threshold REAL NOT NULL DEFAULT 15,
+      min_contract_years INTEGER NOT NULL DEFAULT 1,
+      max_contract_years INTEGER NOT NULL DEFAULT 5,
+      require_support_bundle_above REAL NOT NULL DEFAULT 10,
+      escalation_message TEXT NOT NULL DEFAULT 'This request exceeds approved negotiation limits and has been escalated to a company manager for review.',
+      updated_at TEXT NOT NULL,
+      updated_by TEXT,
+      UNIQUE(tenant_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS dataset_imports (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tenant_id TEXT NOT NULL DEFAULT 'tenant_default',
+      import_id TEXT UNIQUE NOT NULL,
+      filename TEXT NOT NULL,
+      format TEXT NOT NULL DEFAULT 'json',
+      total_rows INTEGER NOT NULL DEFAULT 0,
+      valid_rows INTEGER NOT NULL DEFAULT 0,
+      invalid_rows INTEGER NOT NULL DEFAULT 0,
+      duplicate_rows INTEGER NOT NULL DEFAULT 0,
+      imported_rows INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'VALIDATED',
+      errors_json TEXT NOT NULL DEFAULT '[]',
+      warnings_json TEXT NOT NULL DEFAULT '[]',
+      imported_by TEXT,
       created_at TEXT NOT NULL
     );
 
@@ -163,6 +197,8 @@ export function initDatabase() {
   // 3. Create indexes for tenant-scoped query performance AFTER columns are guaranteed to exist
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_negotiations_tenant ON negotiations(tenant_id, customer_id);
+    CREATE INDEX IF NOT EXISTS idx_negotiations_owner ON negotiations(tenant_id, customer_user_id, status);
+    CREATE INDEX IF NOT EXISTS idx_dataset_imports_tenant ON dataset_imports(tenant_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_approvals_tenant ON negotiation_approvals(tenant_id, status);
     CREATE INDEX IF NOT EXISTS idx_checkpoints_tenant ON agent_checkpoints(tenant_id, session_id);
     CREATE INDEX IF NOT EXISTS idx_outbox_tenant ON hindsight_outbox(tenant_id, status);
@@ -219,6 +255,17 @@ function runMigrations() {
     }
   } catch (e) {}
 
+  // Ensure customer ownership + lifecycle status exist on negotiations (spec §5, §17)
+  try {
+    const tableInfo = db.prepare("PRAGMA table_info(negotiations)").all();
+    if (!tableInfo.some(col => col.name === 'customer_user_id')) {
+      db.exec("ALTER TABLE negotiations ADD COLUMN customer_user_id TEXT");
+    }
+    if (!tableInfo.some(col => col.name === 'status')) {
+      db.exec("ALTER TABLE negotiations ADD COLUMN status TEXT NOT NULL DEFAULT 'ACTIVE'");
+    }
+  } catch (e) {}
+
   // Ensure max_attempts, next_retry_at, last_error exist in hindsight_outbox
   try {
     const tableInfo = db.prepare("PRAGMA table_info(hindsight_outbox)").all();
@@ -255,6 +302,9 @@ export function seedTenantsAndUsers() {
 
   // Seed users with pre-computed bcrypt hashes (password: Password123!)
   // bcrypt hash for "Password123!" with salt rounds 10
+  // Two-Role spec §2/§3: only SALES REPRESENTATIVE and ADMIN are seeded/usable.
+  // The legacy MANAGER seed row is retained but downgraded to SALESPERSON so old
+  // local databases do not break, while no Manager account remains usable.
   const defaultPasswordHash = bcrypt.hashSync('Password123!', 10);
 
   const usersToSeed = [
@@ -269,15 +319,22 @@ export function seedTenantsAndUsers() {
       id: 'USR-MGR-01',
       tenant_id: 'tenant_default',
       email: 'manager@dealmind.local',
-      display_name: 'Sarah VP Sales',
-      role: 'MANAGER'
+      display_name: 'Sarah Account Exec',
+      role: 'SALESPERSON'
     },
     {
       id: 'USR-SALES-01',
       tenant_id: 'tenant_default',
       email: 'sales@dealmind.local',
-      display_name: 'Alex Account Exec',
+      display_name: 'Alex Sales Rep',
       role: 'SALESPERSON'
+    },
+    {
+      id: 'USR-CUST-01',
+      tenant_id: 'tenant_default',
+      email: 'customer@dealmind.local',
+      display_name: 'Jordan Buyer',
+      role: 'CUSTOMER'
     },
     {
       id: 'USR-TENANT2-ADMIN',
@@ -349,6 +406,93 @@ export function seedDatabase(tenantId = 'tenant_default') {
         item.outcomeReason,
         now
       );
+    }
+
+    // Seed baseline learning timeline evolution milestones if timeline is empty
+    const timelineCheck = db.prepare('SELECT COUNT(*) as count FROM learning_timeline WHERE tenant_id = ?').get(tenantId);
+    if (!timelineCheck || timelineCheck.count === 0) {
+      const insertTimeline = db.prepare(`
+        INSERT INTO learning_timeline (
+          tenant_id, deal_id, customer, date, event_type, before_wins, before_losses, before_confidence, after_wins, after_losses, after_confidence, memory_retained, timestamp
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      const baselineEvents = [
+        {
+          deal_id: 'DEAL-003',
+          customer: 'Acme Corp',
+          date: '2026-02-21',
+          event_type: 'OUTCOME_RETAINED',
+          before_wins: 0,
+          before_losses: 2,
+          before_confidence: 'LOW (0.35)',
+          after_wins: 1,
+          after_losses: 2,
+          after_confidence: 'CALIBRATED_MEDIUM (0.58)',
+          memory_retained: 'Retained [DEAL-003] Acme Corp: WON with 8% discount + premium support package. Replaced direct price drop.',
+          timestamp: '2026-02-21 16:45:00'
+        },
+        {
+          deal_id: 'DEAL-005',
+          customer: 'Acme Corp',
+          date: '2026-03-19',
+          event_type: 'OUTCOME_RETAINED',
+          before_wins: 1,
+          before_losses: 3,
+          before_confidence: 'CALIBRATED_MEDIUM (0.58)',
+          after_wins: 2,
+          after_losses: 3,
+          after_confidence: 'HIGH (0.74)',
+          memory_retained: 'Retained [DEAL-005] Acme Corp: WON with 2-year commitment and premium onboarding package.',
+          timestamp: '2026-03-19 14:10:00'
+        },
+        {
+          deal_id: 'DEAL-008',
+          customer: 'Acme Corp',
+          date: '2026-06-18',
+          event_type: 'OUTCOME_RETAINED',
+          before_wins: 4,
+          before_losses: 3,
+          before_confidence: 'HIGH (0.74)',
+          after_wins: 5,
+          after_losses: 3,
+          after_confidence: 'HIGH_STATISTICAL (0.85)',
+          memory_retained: 'Retained [DEAL-008] Acme Corp: WON with 3-year term & tier-1 support ($144,000 net). Solidified customer precedent.',
+          timestamp: '2026-06-18 11:30:00'
+        },
+        {
+          deal_id: 'DEAL-011',
+          customer: 'BrightWorks',
+          date: '2026-04-27',
+          event_type: 'OUTCOME_RETAINED',
+          before_wins: 6,
+          before_losses: 4,
+          before_confidence: 'CALIBRATED_MEDIUM (0.64)',
+          after_wins: 7,
+          after_losses: 4,
+          after_confidence: 'HIGH (0.79)',
+          memory_retained: 'Retained [DEAL-011] BrightWorks: WON with 7% discount + implementation support. Expanded mid-market precedent.',
+          timestamp: '2026-04-27 15:20:00'
+        }
+      ];
+
+      for (const evt of baselineEvents) {
+        insertTimeline.run(
+          tenantId,
+          evt.deal_id,
+          evt.customer,
+          evt.date,
+          evt.event_type,
+          evt.before_wins,
+          evt.before_losses,
+          evt.before_confidence,
+          evt.after_wins,
+          evt.after_losses,
+          evt.after_confidence,
+          evt.memory_retained,
+          evt.timestamp
+        );
+      }
     }
   })();
   if (newlyInserted > 0) {

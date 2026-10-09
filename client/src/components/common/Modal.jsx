@@ -71,7 +71,7 @@ export function EmptyState({ icon: Icon, title, description, action }) {
   return (
     <div className="p-12 text-center flex flex-col items-center justify-center space-y-3 max-w-sm mx-auto">
       {Icon && (
-        <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-1">
+        <div className="w-12 h-12 rounded-2xl bg-dm-tint dark:bg-indigo-950/40 border border-dm-tint dark:border-indigo-900/50 flex items-center justify-center text-dm-blue dark:text-indigo-400 mb-1">
           <Icon className="w-6 h-6" />
         </div>
       )}

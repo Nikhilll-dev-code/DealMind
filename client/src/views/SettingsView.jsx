@@ -56,13 +56,13 @@ export default function SettingsView({ health, onResetDemoGlobal }) {
     }
   };
 
-  const isManagerOrAdmin = hasRole(['ADMIN', 'MANAGER']);
+  const isAdminUser = hasRole(['ADMIN']);
 
   const tabs = [
     { id: 'profile', label: 'User Profile', icon: User },
     { id: 'organization', label: 'Organization & Tenant', icon: Building2 },
     { id: 'system', label: 'System Status', icon: Server },
-    ...(isManagerOrAdmin ? [{ id: 'infrastructure', label: 'Infrastructure Telemetry', icon: Cpu }] : []),
+    ...(isAdminUser ? [{ id: 'infrastructure', label: 'Infrastructure Telemetry', icon: Cpu }] : []),
     { id: 'demo', label: 'Demo Lifecycle', icon: RotateCcw }
   ];
 
@@ -71,11 +71,11 @@ export default function SettingsView({ health, onResetDemoGlobal }) {
       {/* Header */}
       <div>
         <div className="flex items-center gap-2">
-          <Settings className="w-6 h-6 text-brand-600 dark:text-brand-400" />
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white">Settings & Account Management</h1>
+          <User className="w-6 h-6 text-dm-blue dark:text-indigo-400" />
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white">Profile & Preferences</h1>
         </div>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-          Tenant context, account permissions, system observability, and database lifecycle controls.
+          User profile details, tenant context, system observability, and database controls.
         </p>
       </div>
 
@@ -105,7 +105,7 @@ export default function SettingsView({ health, onResetDemoGlobal }) {
       {activeTab === 'profile' && (
         <Card className="p-6 space-y-6">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-500 to-indigo-600 flex items-center justify-center text-white text-xl font-bold shadow-md shadow-brand-500/20">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-500 to-dm-blue flex items-center justify-center text-white text-xl font-bold shadow-md shadow-brand-500/20">
               {user?.display_name ? user.display_name.charAt(0).toUpperCase() : 'U'}
             </div>
             <div>
@@ -128,7 +128,7 @@ export default function SettingsView({ health, onResetDemoGlobal }) {
             <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
               <span className="text-[10px] font-bold uppercase text-slate-400 block mb-1">Approval Authorization</span>
               <span className="text-xs font-bold text-slate-900 dark:text-white">
-                {hasRole(['ADMIN', 'MANAGER']) ? 'Authorized Approver' : 'Requires Approval (>15%)'}
+                {hasRole(['ADMIN']) ? 'Approval authority' : 'Requires approval (>15%)'}
               </span>
             </div>
 
@@ -147,10 +147,10 @@ export default function SettingsView({ health, onResetDemoGlobal }) {
         <Card className="p-6 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
             <div className="flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-indigo-500" />
+              <Building2 className="w-4 h-4 text-dm-blue" />
               <h3 className="font-bold text-slate-900 dark:text-white text-sm">Tenant Isolation Context</h3>
             </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold">
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-dm-blue/10 text-dm-blue dark:text-indigo-400 font-bold">
               Multi-Tenant Architecture
             </span>
           </div>
@@ -171,7 +171,7 @@ export default function SettingsView({ health, onResetDemoGlobal }) {
               </div>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/60 text-xs text-indigo-700 dark:text-indigo-300">
+            <div className="p-3.5 rounded-xl bg-dm-tint/50 dark:bg-indigo-950/20 border border-dm-blue dark:border-indigo-900/60 text-xs text-dm-deep dark:text-indigo-300">
               Every negotiation episode, customer memory, and approval record is isolated strictly by the verified tenant claim derived from the server-side JWT token.
             </div>
           </div>
@@ -186,7 +186,7 @@ export default function SettingsView({ health, onResetDemoGlobal }) {
               <Server className="w-4 h-4 text-emerald-500" />
               <h3 className="font-bold text-slate-900 dark:text-white text-sm">System Subsystems Overview</h3>
             </div>
-            {isManagerOrAdmin && (
+            {isAdminUser && (
               <Button 
                 variant="outline" 
                 size="sm" 

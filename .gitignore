@@ -32,6 +32,8 @@ coverage/
 # Runtime data — keep the directory placeholder
 server/data/*
 !server/data/.gitkeep
+data/*
+!data/.gitkeep
 
 # Logs
 *.log
@@ -47,6 +49,7 @@ yarn-error.log*
 .vite/
 tmp/
 temp/
+*.zip
 
 # OS and editor files
 .vscode/

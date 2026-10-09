@@ -8,8 +8,10 @@
     "client"
   ],
   "scripts": {
+    "start": "npm run start:client",
+    "dev": "npm run start:client",
     "start:server": "npm run start --prefix server",
-    "start:client": "npm run dev --prefix client",
+    "start:client": "npm run start --prefix client",
     "test:server": "npm test --prefix server",
     "build:client": "npm run build --prefix client"
   }

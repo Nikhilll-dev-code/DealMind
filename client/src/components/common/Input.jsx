@@ -38,7 +38,7 @@ export default function Input({
           className={`w-full bg-slate-50 dark:bg-slate-950/60 border ${
             error
               ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500'
-              : 'border-slate-200 dark:border-slate-800 focus:border-indigo-500 dark:focus:border-indigo-500 focus:ring-indigo-500'
+              : 'border-slate-200 dark:border-slate-800 focus:border-dm-blue dark:focus:border-indigo-500 focus:ring-dm-blue'
           } rounded-xl py-2 px-3 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-1 transition ${
             Icon ? 'pl-9' : prefix ? 'pl-8' : ''
           } ${suffix ? 'pr-8' : ''} ${className}`}
@@ -82,8 +82,8 @@ export function Select({
         className={`w-full bg-slate-50 dark:bg-slate-950/60 border ${
           error
             ? 'border-rose-500 focus:border-rose-500'
-            : 'border-slate-200 dark:border-slate-800 focus:border-indigo-500'
-        } rounded-xl py-2 px-3 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition capitalize ${className}`}
+            : 'border-slate-200 dark:border-slate-800 focus:border-dm-blue'
+        } rounded-xl py-2 px-3 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-dm-blue transition capitalize ${className}`}
         {...props}
       >
         {options.map((opt) => {

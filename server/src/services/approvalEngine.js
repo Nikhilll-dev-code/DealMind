@@ -146,6 +146,43 @@ export function processApprovalDecision(approvalId, decisionData = {}) {
     approvalId
   );
 
+  // Synchronize decision to the core negotiations table so all views update
+  const dealRow = db.prepare('SELECT * FROM negotiations WHERE deal_id = ? AND tenant_id = ?').get(approval.deal_id, approval.tenant_id);
+  if (dealRow) {
+    let newConcession = dealRow.concession_percent;
+    let newCounterOffer = dealRow.counter_offer;
+    let newStrategy = dealRow.strategy;
+    let newStatus = dealRow.status;
+
+    if (status === 'APPROVED') {
+      newConcession = Number(approval.requested_discount) || dealRow.concession_percent;
+      newCounterOffer = Math.round((dealRow.initial_offer || 100000) * (1 - newConcession / 100));
+      newStrategy = approval.proposed_strategy || dealRow.strategy;
+      newStatus = 'APPROVED';
+    } else if (status === 'MODIFIED') {
+      newConcession = Number(decisionData.modifiedDiscount);
+      newCounterOffer = Math.round((dealRow.initial_offer || 100000) * (1 - newConcession / 100));
+      newStrategy = `Approved with modified concession of ${newConcession}%. ${approval.proposed_strategy || ''}`;
+      newStatus = 'APPROVED_MODIFIED';
+    } else if (status === 'REJECTED') {
+      newStatus = 'REJECTED';
+      newStrategy = `Concession request rejected by management. ${dealRow.strategy || ''}`;
+    }
+
+    db.prepare(`
+      UPDATE negotiations
+      SET concession_percent = ?, counter_offer = ?, strategy = ?, status = ?
+      WHERE deal_id = ? AND tenant_id = ?
+    `).run(
+      newConcession,
+      newCounterOffer,
+      newStrategy,
+      newStatus,
+      approval.deal_id,
+      approval.tenant_id
+    );
+  }
+
   const updatedRecord = db.prepare('SELECT * FROM negotiation_approvals WHERE approval_id = ?').get(approvalId);
   return {
     ...updatedRecord,

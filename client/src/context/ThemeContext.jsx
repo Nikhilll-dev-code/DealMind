@@ -3,14 +3,11 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const ThemeContext = createContext();
 
 export function ThemeProvider({ children }) {
+  // DealMind 3.0 is light-first (spec §11). Dark mode is opt-in only.
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('dealmind_theme');
     if (saved === 'dark' || saved === 'light') return saved;
-    // System preference fallback
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-      return 'light';
-    }
-    return 'dark';
+    return 'light';
   });
 
   useEffect(() => {

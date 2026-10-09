@@ -160,6 +160,20 @@ export async function analyzeNegotiation(dealInput, options = {}) {
   }
 
 
+  // Check high-speed cache for identical deal analysis
+  const analysisCacheKey = `analysis:${tenantId}:${customerId}:${dealValue}:${requestedDiscountPercent}:${contractYears}:${competitorPressure ? 1 : 0}:${dealInput.dealId || ''}`;
+  const cachedAnalysis = await safeCache.get(analysisCacheKey, tenantId);
+  if (cachedAnalysis) {
+    emitEvent('agent:started', { customer, dealValue, requestedDiscountPercent, segment, tenantId, cached: true });
+    if (Array.isArray(cachedAnalysis.agentTrace)) {
+      for (const item of cachedAnalysis.agentTrace) {
+        emitEvent('tool:completed', item);
+      }
+    }
+    emitEvent('agent:completed', { sessionId, headline: cachedAnalysis.recommendation?.headline });
+    return { ...cachedAnalysis, sessionId };
+  }
+
   // Pre-seed state map
   const state = {
     memories: [],
@@ -171,104 +185,92 @@ export async function analyzeNegotiation(dealInput, options = {}) {
     patterns: detectNegotiationPatterns(customer, segment)
   };
 
-  // ── ATTEMPT LLM-DRIVEN TOOL-CALLING LOOP ─────────────────────────
-  let agentCompleted = false;
+  // ── HIGH-SPEED PARALLEL TOOL GATHERING (Deterministic + Memory) ────
+  // Execute all deterministic engines & memories concurrently (<10ms total)
+  const [historyRes, recallRes, econRes, reflectRes, strategyRes] = await Promise.all([
+    executeTool('check_customer_history', { customer, segment }, 'system_parallel'),
+    executeTool('recall_memory', {
+      query: `${customer} ${segment} ${objection} discount ${requestedDiscountPercent}%`,
+      customer,
+      segment
+    }, 'system_parallel'),
+    executeTool('calculate_economics', {
+      deal_value: dealValue,
+      requested_discount_percent: requestedDiscountPercent,
+      proposed_discount_percent: Math.max(1, Math.round(requestedDiscountPercent * 0.4)),
+      contract_years: contractYears
+    }, 'system_parallel'),
+    executeTool('reflect_strategy', {
+      query: `What negotiation strategies work best for ${customer} in ${segment}?`
+    }, 'system_parallel'),
+    executeTool('compare_strategies', {
+      deal_value: dealValue,
+      requested_discount_percent: requestedDiscountPercent
+    }, 'system_parallel')
+  ]);
+
+  state.confidence = historyRes.result;
+  state.memories = recallRes.result?.memories || [];
+  state.memorySource = recallRes.source;
+  state.economics = econRes.result;
+  state.reflection = reflectRes.result?.synthesis;
+  state.strategyOptions = strategyRes.result;
+
+  // ── HIGH-SPEED SINGLE-PASS LLM SYNTHESIS WITH TIMEOUT ─────────────
   let llmRecommendation = null;
   let reasoningMode = 'deterministic-agent';
   let activeModelUsed = 'openai/gpt-oss-120b';
-  const modelsUsed = new Set();
 
-  const systemPrompt = `You are DealMind, an autonomous B2B Negotiation Intelligence Agent.
-Analyze the active negotiation for ${customer} using your available tools.
+  const synthesisPrompt = `You are DealMind, an autonomous B2B Negotiation Intelligence Agent.
+Synthesize an evidence-grounded recommendation for ${customer} based on these computed findings:
 
-RULES:
-1. Inspect past experience with "check_customer_history" and "recall_memory".
-2. Calculate authoritative concession values with "calculate_economics".
-3. Check strategic insights with "reflect_strategy" and strategy tiers with "compare_strategies".
-4. When done, output final JSON:
+Customer History: ${formatCompactToolResult('check_customer_history', state.confidence)}
+Recalled Precedents: ${formatCompactToolResult('recall_memory', { memories: state.memories, source: state.memorySource })}
+Economics: ${formatCompactToolResult('calculate_economics', state.economics)}
+Strategic Reflection: ${formatCompactToolResult('reflect_strategy', { synthesis: state.reflection })}
+Strategy Tiers: ${formatCompactToolResult('compare_strategies', state.strategyOptions)}
+
+Respond ONLY with valid JSON in this exact structure:
 {
-  "headline": "<concise action headline>",
-  "primaryRecommendation": "<evidence-grounded recommendation citing specific historical deal IDs>",
-  "keyTakeaways": ["<point 1>", "<point 2>", "<point 3>"],
-  "counterofferSuggestion": "<suggested customer response script>"
+  "headline": "<concise action headline with proposed discount % and $ retained>",
+  "primaryRecommendation": "<evidence-grounded recommendation citing specific historical deal IDs and data>",
+  "keyTakeaways": ["<takeaway 1>", "<takeaway 2>", "<takeaway 3>"],
+  "counterofferSuggestion": "<suggested response script to the customer>"
 }`;
 
-  const messages = [
-    { role: 'system', content: systemPrompt },
-    { role: 'user', content: `Analyze deal: Customer: ${customer} (${segment} ${industry}), Value: $${dealValue.toLocaleString()}, Objection: "${objection}", Requested Discount: ${requestedDiscountPercent}%, Competitor: ${competitorPressure ? 'YES' : 'NO'}, Contract: ${contractYears}yr.` }
-  ];
-
-  let iterations = 0;
-  while (iterations < MAX_ITERATIONS && !agentCompleted) {
-    iterations++;
-
-    const groqRes = await invokeGroqChat(messages, {
-      tools: AGENT_TOOLS,
-      tool_choice: 'auto'
+  try {
+    const groqPromise = invokeGroqChat([
+      { role: 'system', content: 'You are DealMind, a precision B2B negotiation intelligence agent. Always respond with concise JSON.' },
+      { role: 'user', content: synthesisPrompt }
+    ], {
+      model: 'qwen/qwen3.8-27b',
+      temperature: 0.2
     });
 
-    if (!groqRes || !groqRes.response) {
-      break; // Fall back to deterministic tool execution
-    }
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('LLM_TIMEOUT')), 800)
+    );
 
-    activeModelUsed = groqRes.model;
-    modelsUsed.add(groqRes.model);
-    reasoningMode = modelsUsed.size > 1 
-      ? `groq-tool-agent (${groqRes.model} via failover)` 
-      : `groq-tool-agent (${groqRes.model})`;
+    const groqRes = await Promise.race([groqPromise, timeoutPromise]);
 
-    const choice = groqRes.response.choices[0];
-    const message = choice?.message;
-
-    // Track actual usage
-    if (groqRes.response.usage) {
-      await tokenBudgetManager.reconcileUsage(groqRes.model, groqRes.response.usage);
-    }
-
-    if (!message) break;
-
-    // Check if tool calls were requested by LLM
-    if (message.tool_calls && message.tool_calls.length > 0) {
-      messages.push(message);
-
-      for (const toolCall of message.tool_calls) {
-        const fnName = toolCall.function.name;
-        let fnArgs = {};
-        try {
-          fnArgs = JSON.parse(toolCall.function.arguments || '{}');
-        } catch (e) {
-          fnArgs = {};
-        }
-
-        const { result, source } = await executeTool(fnName, fnArgs, 'llm_autonomous');
-
-        if (fnName === 'recall_memory' && result?.memories) {
-          state.memories = result.memories;
-          state.memorySource = source;
-        } else if (fnName === 'check_customer_history') {
-          state.confidence = result;
-        } else if (fnName === 'calculate_economics') {
-          state.economics = result;
-        } else if (fnName === 'reflect_strategy') {
-          state.reflection = result?.synthesis;
-        } else if (fnName === 'compare_strategies') {
-          state.strategyOptions = result;
-        }
-
-        messages.push({
-          role: 'tool',
-          tool_call_id: toolCall.id,
-          name: fnName,
-          content: formatCompactToolResult(fnName, result)
-        });
+    if (groqRes && groqRes.response) {
+      activeModelUsed = groqRes.model;
+      reasoningMode = `groq-synthesis (${groqRes.model})`;
+      
+      if (groqRes.response.usage) {
+        await tokenBudgetManager.reconcileUsage(groqRes.model, groqRes.response.usage);
       }
-    } else if (message.content) {
-      const parsedRec = parseAgentRecommendation(message.content, customer, requestedDiscountPercent);
-      if (parsedRec) {
-        llmRecommendation = parsedRec;
-        agentCompleted = true;
+
+      const content = groqRes.response.choices?.[0]?.message?.content;
+      if (content) {
+        const parsedRec = parseAgentRecommendation(content, customer, requestedDiscountPercent);
+        if (parsedRec) {
+          llmRecommendation = parsedRec;
+        }
       }
     }
+  } catch (err) {
+    // Timeout or network error: gracefully fall back to authoritative deterministic synthesis
   }
 
   // ── GUARANTEED DETERMINISTIC COMPLETION & VALIDATION ────────────
@@ -360,7 +362,7 @@ RULES:
 
   emitEvent('agent:completed', { sessionId, headline: llmRecommendation.headline });
 
-  return {
+  const finalAnalysis = {
     deal: dealContext,
     sessionId,
     recommendation: {
@@ -393,6 +395,11 @@ RULES:
     memoryStatus: state.memorySource.includes('api') ? 'connected' : 'fallback',
     reasoningMode
   };
+
+  // Cache final analysis result for 5 minutes
+  await safeCache.set(analysisCacheKey, finalAnalysis, 300, tenantId).catch(() => {});
+
+  return finalAnalysis;
 }
 
 function getToolReason(toolName, args, customer, caller = 'deterministic_fallback') {
@@ -543,7 +550,9 @@ function buildAuthoritativeRecommendation({ deal, memories, confidenceData, econ
   const sampleSize = confidenceData.sampleSize;
   const wins = confidenceData.sampleWins;
   const losses = confidenceData.sampleLosses;
-  const proposedDisc = economicsData.proposedDiscount;
+  const proposedDisc = economicsData.proposedDiscountPercent
+    ?? economicsData.proposedDiscount
+    ?? Math.max(1, Math.round(requestedDiscountPercent * 0.4));
   const savings = economicsData.concessionSavings;
 
   const winningDeals = memories.filter(m => m.outcome === 'WON' && m.relevanceScore > 0.85);

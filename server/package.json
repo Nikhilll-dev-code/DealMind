@@ -14,6 +14,7 @@
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^11.8.0",
     "cors": "^2.8.5",
+    "dealmind": "file:..",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "groq-sdk": "^0.15.0",

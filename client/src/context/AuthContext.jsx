@@ -79,6 +79,15 @@ export function AuthProvider({ children }) {
   };
 
   const isAuthenticated = Boolean(user);
+  const role = user?.role || 'SALESPERSON';
+  // Hard role separation (Two-Role spec §2/§102).
+  // ADMIN -> admin console; CUSTOMER -> legacy customer app; every other
+  // internal role (SALESPERSON, or legacy MANAGER alias) is a Sales Representative.
+  const normalizedRole = String(role).toUpperCase();
+  const roleFamily = normalizedRole === 'ADMIN' ? 'ADMIN' : normalizedRole === 'CUSTOMER' ? 'CUSTOMER' : 'SALES';
+  const isSalesRep = roleFamily === 'SALES';
+  const isCustomer = roleFamily === 'CUSTOMER';
+  const isAdmin = roleFamily === 'ADMIN';
 
   return (
     <AuthContext.Provider
@@ -87,7 +96,11 @@ export function AuthProvider({ children }) {
         loading,
         error,
         isAuthenticated,
-        role: user?.role || 'SALESPERSON',
+        role,
+        roleFamily,
+        isSalesRep,
+        isCustomer,
+        isAdmin,
         tenantId: user?.tenant_id || 'tenant_default',
         login,
         register,

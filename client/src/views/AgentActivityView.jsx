@@ -20,7 +20,7 @@ export default function AgentActivityView({ agentTrace = [], currentDeal }) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <Activity className="w-6 h-6 text-indigo-500" />
+            <Activity className="w-6 h-6 text-dm-blue" />
             <h1 className="text-xl font-bold text-slate-900 dark:text-white">Agent Execution & Tool Activity Trace</h1>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -59,7 +59,7 @@ export default function AgentActivityView({ agentTrace = [], currentDeal }) {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5 flex-wrap">
-                    <span className="w-6 h-6 rounded-full bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xs font-mono font-bold">
+                    <span className="w-6 h-6 rounded-full bg-dm-blue/20 text-dm-blue dark:text-indigo-400 flex items-center justify-center text-xs font-mono font-bold">
                       {step.step}
                     </span>
                     <span className="font-mono text-xs font-bold text-purple-600 dark:text-purple-300">

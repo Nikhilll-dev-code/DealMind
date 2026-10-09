@@ -1,17 +1,18 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { 
-  SlidersHorizontal, 
-  Sparkles, 
-  Brain, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Clock, 
-  Plus, 
-  Trash2, 
-  ShieldAlert, 
+import {
+  SlidersHorizontal,
+  Sparkles,
+  Brain,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  Plus,
+  Trash2,
+  ShieldAlert,
   ArrowRight,
   TrendingUp,
-  Scale
+  Scale,
+  RotateCcw
 } from 'lucide-react';
 import Card from './common/Card';
 import Button from './common/Button';
@@ -22,12 +23,42 @@ export default function WhatIfSimulator({ currentDeal, onAdoptScenario = null })
   const baseRequestedDiscount = Number(currentDeal?.requestedDiscountPercent || currentDeal?.requested_discount_percent || 20);
   const approvalThreshold = 15;
 
+  // Deterministic economics helper (mirrors server economics so comparisons stay reproducible)
+  function economicsFor(sc) {
+    const requested = Math.round((baseDealValue * baseRequestedDiscount) / 100);
+    const proposed = Math.round((baseDealValue * sc.discountPercent) / 100);
+    const netAnnual = baseDealValue - proposed;
+    const saved = requested - proposed;
+    const supportCost = sc.includeSupport ? Math.round(baseDealValue * 0.02) : 0;
+    const tcv = netAnnual * sc.contractYears;
+    const requiresApproval = sc.discountPercent > approvalThreshold;
+
+    let outcome = 'MODERATE_WIN_PROBABILITY';
+    if (sc.discountPercent <= 10 && sc.includeSupport) {
+      outcome = 'LIKELY_WIN';
+    } else if (sc.discountPercent > 15) {
+      outcome = 'HIGH_MARGIN_RISK';
+    }
+
+    return {
+      requestedConcession: requested,
+      proposedConcession: proposed,
+      concessionSavings: saved,
+      netAnnualRevenue: netAnnual,
+      effectiveNetValue: netAnnual - supportCost,
+      totalContractValue: tcv,
+      supportCost,
+      requiresApproval,
+      outcome
+    };
+  }
+
   // Multi-scenario state
   const [scenarios, setScenarios] = useState([
     {
       id: 'sc_conservative',
       name: 'Scenario A: Support First',
-      discountPercent: Math.max(1, Math.round(baseRequestedDiscount * 0.4)), // e.g. 8%
+      discountPercent: Math.max(1, Math.round(baseRequestedDiscount * 0.4)),
       contractYears: 1,
       includeSupport: true,
       giveGetNotes: 'Bundle premium onboarding to protect pricing'
@@ -35,7 +66,7 @@ export default function WhatIfSimulator({ currentDeal, onAdoptScenario = null })
     {
       id: 'sc_multi_year',
       name: 'Scenario B: Multi-Year Lock',
-      discountPercent: Math.max(2, Math.round(baseRequestedDiscount * 0.5)), // e.g. 10%
+      discountPercent: Math.max(2, Math.round(baseRequestedDiscount * 0.5)),
       contractYears: 2,
       includeSupport: true,
       giveGetNotes: '2-Year contract commitment in exchange for 10% discount'
@@ -43,7 +74,7 @@ export default function WhatIfSimulator({ currentDeal, onAdoptScenario = null })
     {
       id: 'sc_aggressive',
       name: 'Scenario C: Price Driven',
-      discountPercent: Math.max(3, Math.round(baseRequestedDiscount * 0.8)), // e.g. 16%
+      discountPercent: Math.max(3, Math.round(baseRequestedDiscount * 0.8)),
       contractYears: 1,
       includeSupport: false,
       giveGetNotes: 'Direct price concession without support overhead'
@@ -54,41 +85,15 @@ export default function WhatIfSimulator({ currentDeal, onAdoptScenario = null })
   const [simulationCache, setSimulationCache] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [batchLoading, setBatchLoading] = useState(false);
 
-  // Compute deterministic economics for all scenarios simultaneously
-  const scenariosWithEconomics = useMemo(() => {
-    return scenarios.map(sc => {
-      const requested = Math.round((baseDealValue * baseRequestedDiscount) / 100);
-      const proposed = Math.round((baseDealValue * sc.discountPercent) / 100);
-      const netAnnual = baseDealValue - proposed;
-      const saved = requested - proposed;
-      const supportCost = sc.includeSupport ? Math.round(baseDealValue * 0.02) : 0;
-      const tcv = netAnnual * sc.contractYears;
-      const requiresApproval = sc.discountPercent > approvalThreshold;
-
-      let outcome = 'MODERATE_WIN_PROBABILITY';
-      if (sc.discountPercent <= 10 && sc.includeSupport) {
-        outcome = 'LIKELY_WIN';
-      } else if (sc.discountPercent > 15) {
-        outcome = 'HIGH_MARGIN_RISK';
-      }
-
-      return {
-        ...sc,
-        economics: {
-          requestedConcession: requested,
-          proposedConcession: proposed,
-          concessionSavings: saved,
-          netAnnualRevenue: netAnnual,
-          effectiveNetValue: netAnnual - supportCost,
-          totalContractValue: tcv,
-          supportCost,
-          requiresApproval,
-          outcome
-        }
-      };
-    });
-  }, [scenarios, baseDealValue, baseRequestedDiscount, approvalThreshold]);
+  // Deterministic preview for all scenarios (instant, no server call)
+  const scenariosWithEconomics = useMemo(() =>
+    scenarios.map(sc => ({
+      ...sc,
+      economics: economicsFor(sc)
+    })),
+  [scenarios]);
 
   const activeScenario = scenariosWithEconomics.find(s => s.id === activeScenarioId) || scenariosWithEconomics[0];
 
@@ -142,6 +147,43 @@ export default function WhatIfSimulator({ currentDeal, onAdoptScenario = null })
     }
   };
 
+  const handleSimulateBatch = async () => {
+    setBatchLoading(true);
+    setError(null);
+    try {
+      const dealId = currentDeal?.dealId || currentDeal?.deal_id || 'DEAL-003';
+      const res = await simulateWhatIf(dealId, {
+        dealValue: baseDealValue,
+        discountPercent: baseRequestedDiscount,
+        contractYears: 1,
+        includeSupport: true,
+        requestedDiscountPercent: baseRequestedDiscount,
+        customer: currentDeal?.customer || 'Customer',
+        segment: currentDeal?.segment || 'enterprise',
+        scenarios: scenarios.map(sc => ({
+          discountPercent: sc.discountPercent,
+          contractYears: sc.contractYears,
+          includeSupport: sc.includeSupport
+        }))
+      });
+      if (res.scenarioBatch) {
+        setSimulationCache(prev => {
+          const next = { ...prev };
+          res.scenarioBatch.forEach((r, idx) => {
+            const sc = scenarios[idx];
+            if (sc) next[sc.id] = r;
+          });
+          return next;
+        });
+      }
+    } catch (e) {
+      console.error('Batch simulation error:', e);
+      setError(e.message || 'Failed to simulate scenarios');
+    } finally {
+      setBatchLoading(false);
+    }
+  };
+
   const activeSimulation = simulationCache[activeScenario.id];
 
   return (
@@ -150,7 +192,7 @@ export default function WhatIfSimulator({ currentDeal, onAdoptScenario = null })
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <SlidersHorizontal className="w-5 h-5 text-indigo-500" />
+            <SlidersHorizontal className="w-5 h-5 text-dm-blue" />
             <h2 className="text-xl font-black text-slate-900 dark:text-white">
               Multi-Scenario Negotiation Comparator
             </h2>
@@ -190,7 +232,7 @@ export default function WhatIfSimulator({ currentDeal, onAdoptScenario = null })
               onClick={() => setActiveScenarioId(sc.id)}
               className={`p-5 rounded-3xl border transition-all cursor-pointer space-y-4 flex flex-col justify-between ${
                 isSelected
-                  ? 'bg-indigo-600/10 dark:bg-indigo-950/40 border-indigo-500 shadow-xl ring-2 ring-indigo-500'
+                  ? 'bg-dm-blue/10 dark:bg-indigo-950/40 border-dm-blue shadow-xl ring-2 ring-dm-blue'
                   : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
               }`}
             >
@@ -214,7 +256,7 @@ export default function WhatIfSimulator({ currentDeal, onAdoptScenario = null })
               <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 space-y-2 text-xs">
                 <div className="flex justify-between">
                   <span className="text-slate-500">Proposed Concession:</span>
-                  <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                  <span className="font-mono font-bold text-dm-blue dark:text-indigo-400">
                     {sc.discountPercent}% (-${econ.proposedConcession.toLocaleString()})
                   </span>
                 </div>
@@ -226,7 +268,7 @@ export default function WhatIfSimulator({ currentDeal, onAdoptScenario = null })
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Bundle Package:</span>
-                  <span className={`font-mono font-bold text-xs ${sc.includeSupport ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500'}`}>
+                  <span className={`font-mono font-bold text-xs ${sc.includeSupport ? 'text-dm-blue dark:text-indigo-400' : 'text-slate-500'}`}>
                     {sc.includeSupport ? `Support (+${econ.supportCost > 0 ? '$' + econ.supportCost.toLocaleString() : '2%'})` : 'None'}
                   </span>
                 </div>
@@ -248,7 +290,7 @@ export default function WhatIfSimulator({ currentDeal, onAdoptScenario = null })
               <div className="space-y-1.5 text-[11px]">
                 {econ.requiresApproval ? (
                   <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-bold">
-                    <ShieldAlert className="w-3.5 h-3.5" /> Approval Required (&gt;15%)
+                    <ShieldAlert className="w-3.5 h-3.5" /> Approval Required (&gt;{approvalThreshold}%)
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
@@ -257,6 +299,10 @@ export default function WhatIfSimulator({ currentDeal, onAdoptScenario = null })
                 )}
                 <div className="text-slate-500 dark:text-slate-400 italic line-clamp-1">
                   {sc.giveGetNotes}
+                </div>
+                <div className="text-slate-500 dark:text-slate-400 text-[10px] font-mono">
+                  evidence: {simulationCache[sc.id] ? (simulationCache[sc.id].evidence?.length ? 'recalled' : 'none') : 'preview'}
+                  · source: {simulationCache[sc.id] ? (simulationCache[sc.id].evidence?.[0]?.source || simulationCache[sc.id].evidence?.source || 'api/simulation') : 'deterministic'}
                 </div>
               </div>
 
@@ -275,7 +321,7 @@ export default function WhatIfSimulator({ currentDeal, onAdoptScenario = null })
                     Adopt Package
                   </Button>
                 ) : (
-                  <span className="text-[10px] text-indigo-500 font-bold uppercase tracking-wider block text-center">
+                  <span className="text-[10px] text-dm-blue font-bold uppercase tracking-wider block text-center">
                     {isSelected ? '✓ Active Editor' : 'Click to Edit'}
                   </span>
                 )}
@@ -311,14 +357,14 @@ export default function WhatIfSimulator({ currentDeal, onAdoptScenario = null })
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Proposed Concession</span>
-              <span className="font-mono font-black text-indigo-600 dark:text-indigo-400 text-sm">
+              <span className="font-mono font-black text-dm-blue dark:text-indigo-400 text-sm">
                 {activeScenario.discountPercent}%
               </span>
             </div>
             <input 
               type="range" min="0" max="40" value={activeScenario.discountPercent}
               onChange={e => handleUpdateActiveScenario({ discountPercent: Number(e.target.value) })}
-              className="w-full accent-indigo-600 h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer"
+              className="w-full accent-dm-blue h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer"
             />
             <div className="flex justify-between text-[10px] font-mono text-slate-400">
               <span>0% (No discount)</span>
@@ -352,7 +398,7 @@ export default function WhatIfSimulator({ currentDeal, onAdoptScenario = null })
               type="button"
               onClick={() => handleUpdateActiveScenario({ includeSupport: !activeScenario.includeSupport })}
               className={`w-10 h-5 rounded-full transition relative ${
-                activeScenario.includeSupport ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-700'
+                activeScenario.includeSupport ? 'bg-dm-blue' : 'bg-slate-300 dark:bg-slate-700'
               }`}
             >
               <span 
@@ -364,23 +410,34 @@ export default function WhatIfSimulator({ currentDeal, onAdoptScenario = null })
             </button>
           </div>
 
-          <Button
-            variant="primary"
-            icon={Sparkles}
-            className="w-full text-xs"
-            disabled={loading}
-            onClick={handleSimulateDeep}
-          >
-            {loading ? 'Recalling Precedents...' : 'Simulate & Recall Precedents'}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="primary"
+              icon={Sparkles}
+              className="flex-1 text-xs"
+              disabled={loading || batchLoading}
+              onClick={handleSimulateDeep}
+            >
+              {loading ? 'Recalling Precedents...' : 'Simulate Active'}
+            </Button>
+            <Button
+              variant="outline"
+              icon={RotateCcw}
+              className="flex-1 text-xs"
+              disabled={batchLoading || scenarios.length < 2}
+              onClick={handleSimulateBatch}
+            >
+              {batchLoading ? 'Comparing...' : 'Compare All Scenarios'}
+            </Button>
+          </div>
         </div>
 
         {/* Reflection & Precedents */}
         <div className="lg:col-span-7 space-y-4">
-          <Card className="p-6 space-y-4 border-indigo-500/30">
+          <Card className="p-6 space-y-4 border-dm-blue/30">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
-                <Brain className="w-4 h-4 text-indigo-500" />
+                <Brain className="w-4 h-4 text-dm-blue" />
                 <h3 className="font-bold text-slate-900 dark:text-white text-xs uppercase tracking-wider">
                   Precedent Reflection ({activeScenario.name})
                 </h3>
@@ -391,17 +448,23 @@ export default function WhatIfSimulator({ currentDeal, onAdoptScenario = null })
             </div>
 
             {/* Reflection Text */}
-            <div className="p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/40 text-xs text-slate-700 dark:text-slate-300 leading-relaxed italic">
-              {activeSimulation?.reflection || 
-                (activeScenario.discountPercent <= 10 && activeScenario.includeSupport
-                  ? `Organizational Reflection: Scenario with ${activeScenario.discountPercent}% concession paired with support aligns with historical win patterns, retaining maximum margin.`
-                  : activeScenario.discountPercent > 15
-                    ? `Organizational Reflection: Concessions exceeding 15% historically trigger high loss rates and margin erosion without improving close velocity.`
-                    : `Organizational Reflection: Moderate concession (${activeScenario.discountPercent}%) requires non-price reciprocal value (such as multi-year term or upfront payment) to protect deal economics.`)}
+            <div className="p-4 rounded-2xl bg-dm-tint dark:bg-indigo-950/30 border border-dm-blue dark:border-indigo-800/40 text-xs text-slate-700 dark:text-slate-300 leading-relaxed italic">
+              {(() => {
+                const sim = activeSimulation;
+                if (sim?.reflection) return sim.reflection;
+                const sc = activeScenario;
+                if (sc.discountPercent <= 10 && sc.includeSupport) {
+                  return `Organizational Reflection: Scenario with ${sc.discountPercent}% concession paired with support aligns with historical win patterns, retaining maximum margin.`;
+                }
+                if (sc.discountPercent > 15) {
+                  return `Organizational Reflection: Concessions exceeding 15% historically trigger high loss rates and margin erosion without improving close velocity.`;
+                }
+                return `Organizational Reflection: Moderate concession (${sc.discountPercent}%) requires non-price reciprocal value (such as multi-year term or upfront payment) to protect deal economics.`;
+              })()}
             </div>
 
             {/* Recalled Precedents */}
-            {activeSimulation?.evidence && (
+            {activeSimulation?.evidence && activeSimulation.evidence.length > 0 && (
               <div className="space-y-2">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                   Comparable Precedent Memories ({activeSimulation.evidence.length})
@@ -410,7 +473,7 @@ export default function WhatIfSimulator({ currentDeal, onAdoptScenario = null })
                   {activeSimulation.evidence.slice(0, 4).map((m, i) => (
                     <div key={i} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="font-mono text-[10px] font-bold text-indigo-500">{m.dealId || m.deal_id}</span>
+                        <span className="font-mono text-[10px] font-bold text-dm-blue">{m.dealId || m.deal_id}</span>
                         <span className={`text-[10px] font-bold ${m.outcome === 'WON' ? 'text-emerald-500' : 'text-rose-500'}`}>
                           {m.outcome}
                         </span>
@@ -418,6 +481,36 @@ export default function WhatIfSimulator({ currentDeal, onAdoptScenario = null })
                       <p className="text-[11px] text-slate-600 dark:text-slate-400 line-clamp-1">{m.strategy}</p>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Batch comparison panel */}
+            {batchLoading && (
+              <div className="p-4 rounded-2xl bg-dm-tint/60 border border-dm-blue/20 text-xs text-dm-muted">
+                Comparing all scenarios against the current deal and recalling precedent evidence for each.
+              </div>
+            )}
+            {Object.keys(simulationCache).length > 1 && (
+              <div className="space-y-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Scenario Comparison (cached)
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {scenariosWithEconomics.map(sc => {
+                    const cached = simulationCache[sc.id];
+                    const econ = sc.economics;
+                    return (
+                      <div key={sc.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs">
+                        <div className="font-bold text-slate-900 dark:text-white truncate">{sc.name}</div>
+                        <div className="mt-1 space-y-1">
+                          <div className="flex justify-between"><span className="text-slate-500">Outcome:</span><span className="font-mono font-bold">{econ.outcome}</span></div>
+                          <div className="flex justify-between"><span className="text-slate-500">Retained:</span><span className="font-mono font-bold text-emerald-600">+${econ.concessionSavings.toLocaleString()}</span></div>
+                          {cached?.reflection && <div className="mt-1 italic text-slate-500 line-clamp-2">{cached.reflection}</div>}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

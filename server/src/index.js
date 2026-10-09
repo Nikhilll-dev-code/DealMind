@@ -4,6 +4,8 @@ import { config } from './config.js';
 import { initDatabase } from './db/database.js';
 import { initHindsight } from './services/hindsightAdapter.js';
 import { router as apiRouter } from './routes/api.js';
+import { customerRouter } from './routes/customerApi.js';
+import { governanceRouter } from './routes/governanceApi.js';
 
 const app = express();
 
@@ -22,6 +24,8 @@ initHindsight().then(res => {
 
 // API routes
 app.use('/api', apiRouter);
+app.use('/api', customerRouter);
+app.use('/api', governanceRouter);
 
 // Root route
 app.get('/', (req, res) => {

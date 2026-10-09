@@ -60,8 +60,8 @@ export default function ApprovalsView({ onRefreshGlobal }) {
     try {
       const payload = {
         status: decisionMode,
-        managerName: user?.display_name || user?.email || 'Commercial Lead',
-        decisionNotes: decisionNotes.trim() || `Decision recorded as ${decisionMode} by Deal Desk Manager.`,
+        managerName: user?.display_name || user?.email || 'Administrator',
+        decisionNotes: decisionNotes.trim() || `Decision recorded as ${decisionMode} by a DealMind administrator.`,
         modifiedDiscount: decisionMode === 'MODIFIED' ? Number(modifiedDiscount) : undefined
       };
 
@@ -80,7 +80,7 @@ export default function ApprovalsView({ onRefreshGlobal }) {
     }
   };
 
-  const isManagerOrAdmin = hasRole(['ADMIN', 'MANAGER']);
+  const canDecide = hasRole(['ADMIN']);
 
   return (
     <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-6 animate-in fade-in duration-150">
@@ -92,7 +92,7 @@ export default function ApprovalsView({ onRefreshGlobal }) {
             <h1 className="text-xl font-bold text-slate-900 dark:text-white">Discount Approvals Center</h1>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Manager escalation queue for commercial concessions exceeding standard authorization thresholds ({'>'}15%).
+            Approval escalation queue for commercial concessions exceeding standard authorization thresholds ({'>'}15%).
           </p>
         </div>
 
@@ -102,12 +102,12 @@ export default function ApprovalsView({ onRefreshGlobal }) {
       </div>
 
       {/* Role Alert for Sales Reps */}
-      {!isManagerOrAdmin && (
+      {!canDecide && (
         <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
           <div className="text-xs text-amber-200/90">
             <strong className="block text-amber-300 font-bold mb-0.5">View-Only Role Notice</strong>
-            You are currently signed in with a Sales Representative role. You can monitor the status of pending deal desk requests, but decision authorization requires Deal Desk Manager or Administrator credentials.
+            You are currently signed in with a Sales Representative role. You can monitor the status of pending deal desk requests, but decision authorization requires DealMind administrator credentials.
           </div>
         </div>
       )}
@@ -166,12 +166,12 @@ export default function ApprovalsView({ onRefreshGlobal }) {
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <Button
-                        variant={isManagerOrAdmin ? 'primary' : 'outline'}
+                        variant={canDecide ? 'primary' : 'outline'}
                         size="sm"
                         onClick={() => handleOpenReview(appr)}
-                        disabled={!isManagerOrAdmin}
+                        disabled={!canDecide}
                       >
-                        {isManagerOrAdmin ? 'Review & Decide' : 'Inspect'}
+                        {canDecide ? 'Review & Decide' : 'Inspect'}
                       </Button>
                     </td>
                   </tr>
@@ -209,11 +209,11 @@ export default function ApprovalsView({ onRefreshGlobal }) {
               </div>
             </div>
 
-            {/* Decision Mode / Form (Managers & Admins only) */}
-            {isManagerOrAdmin ? (
+            {/* Decision form (Admins only) */}
+            {canDecide ? (
               <>
                 <div className="space-y-1.5">
-                  <label className="block font-bold text-slate-700 dark:text-slate-300">Manager Action</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300">Admin Decision</label>
                   <div className="grid grid-cols-3 gap-2.5">
                     {[
                       { mode: 'APPROVED', label: '✓ Full Approval', variant: 'success' },
@@ -229,7 +229,7 @@ export default function ApprovalsView({ onRefreshGlobal }) {
                             ? item.mode === 'APPROVED'
                               ? 'bg-emerald-600 text-white border-emerald-500 shadow-md'
                               : item.mode === 'MODIFIED'
-                              ? 'bg-indigo-600 text-white border-indigo-500 shadow-md'
+                              ? 'bg-dm-blue text-white border-dm-blue shadow-md'
                               : 'bg-rose-600 text-white border-rose-500 shadow-md'
                             : 'bg-slate-50 dark:bg-slate-950/60 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800'
                         }`}
@@ -262,7 +262,7 @@ export default function ApprovalsView({ onRefreshGlobal }) {
                     value={decisionNotes}
                     onChange={e => setDecisionNotes(e.target.value)}
                     placeholder="State the commercial justification or deal desk conditions for this decision (mandatory)."
-                    className="w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-500 resize-none leading-relaxed"
+                    className="w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-dm-blue resize-none leading-relaxed"
                   />
                 </div>
 
@@ -284,7 +284,7 @@ export default function ApprovalsView({ onRefreshGlobal }) {
             ) : (
               <div className="space-y-4">
                 <div className="p-3.5 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400">
-                  <strong>Read-Only Access:</strong> You are viewing this approval queue in salesperson mode. Commercial discount decisions require Deal Desk Manager or Admin role.
+                  <strong>Read-Only Access:</strong> You are viewing this approval queue in salesperson mode. Approval decisions require the DealMind administrator role.
                 </div>
                 <div className="flex justify-end">
                   <Button variant="outline" onClick={() => setSelectedApproval(null)}>

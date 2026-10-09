@@ -108,7 +108,7 @@ export default function NewNegotiationView({ onRunAnalysis, loading }) {
           size="sm"
           icon={Sparkles}
           onClick={handleLoadDemo}
-          className="border-indigo-500/30 text-indigo-600 dark:text-indigo-400"
+          className="border-dm-blue/30 text-dm-blue dark:text-indigo-400"
         >
           Load Demo Scenario
         </Button>
@@ -213,7 +213,7 @@ export default function NewNegotiationView({ onRunAnalysis, loading }) {
                       onClick={() => handleChange('competitorPressure', opt.val)}
                       className={`py-2 px-3 rounded-xl text-xs font-semibold border transition ${
                         formData.competitorPressure === opt.val
-                          ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm'
+                          ? 'bg-dm-blue text-white border-dm-blue shadow-sm'
                           : 'bg-slate-50 dark:bg-slate-950/60 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-slate-400'
                       }`}
                     >
@@ -235,7 +235,7 @@ export default function NewNegotiationView({ onRunAnalysis, loading }) {
                       onClick={() => handleChange('contractYears', yr)}
                       className={`py-2 px-3 rounded-xl text-xs font-semibold border transition ${
                         formData.contractYears === yr
-                          ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm'
+                          ? 'bg-dm-blue text-white border-dm-blue shadow-sm'
                           : 'bg-slate-50 dark:bg-slate-950/60 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-slate-400'
                       }`}
                     >

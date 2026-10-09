@@ -1,189 +1,136 @@
 import React, { useState } from 'react';
-import { BrainCircuit, Eye, EyeOff, Lock, Mail, User, ShieldCheck, Sparkles, AlertCircle } from 'lucide-react';
+import { BrainCircuit, Eye, EyeOff, Lock, Mail, AlertCircle, ArrowLeft, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useRouter } from '../context/RouteContext';
 import { useToast } from '../context/ToastContext';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 
+const DEMO_ACCOUNTS = [
+  { label: 'Sales Representative', email: 'sales@dealmind.local' },
+  { label: 'Administrator', email: 'admin@dealmind.local' }
+];
+
+function homeForRole(role) {
+  const normalized = String(role || '').toUpperCase();
+  if (normalized === 'ADMIN') return '/admin';
+  return '/dashboard';
+}
+
 export default function LoginView() {
-  const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [role, setRole] = useState('SALESPERSON');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState(null);
 
-  const { login, register } = useAuth();
+  const { login } = useAuth();
   const { navigate } = useRouter();
   const toast = useToast();
 
-  const handleQuickFill = (demoEmail, demoPassword) => {
-    setEmail(demoEmail);
-    setPassword(demoPassword);
-    setFormError(null);
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email || !password || (isRegister && !displayName)) {
-      setFormError('Please fill in all required fields.');
+    if (!email || !password) {
+      setFormError('Please enter your email and password.');
       return;
     }
-
     setLoading(true);
     setFormError(null);
-
     try {
-      if (isRegister) {
-        await register({ email, password, displayName, role });
-        toast.success('Account Created', `Welcome to DealMind, ${displayName}!`);
-      } else {
-        await login(email, password);
-        toast.success('Authenticated', 'Signed in successfully.');
-      }
-      navigate('/dashboard');
+      const user = await login(email, password);
+      toast.success('Signed in', `Welcome back, ${user?.display_name || user?.email}.`);
+      // Strict role-based routing (Two-Role spec §4):
+      // Sales Rep -> workspace, Admin -> console, Customer -> legacy portal.
+      navigate(homeForRole(user?.role));
     } catch (err) {
-      setFormError(err.message || 'Authentication failed');
+      setFormError(err.message || 'Authentication failed.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 sm:p-6 select-none font-sans">
-      <div className="max-w-md w-full space-y-6">
-        {/* Brand Logo & Title */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex p-3 rounded-2xl bg-indigo-600 text-white shadow-xl shadow-indigo-600/30 mb-1">
-            <BrainCircuit className="w-8 h-8" />
+    <div className="min-h-screen bg-dm-bg flex items-center justify-center p-4 sm:p-6 font-sans">
+      <div className="w-full max-w-md">
+        <button onClick={() => navigate('/')} className="inline-flex items-center gap-1.5 text-xs font-semibold text-dm-muted hover:text-dm-ink mb-6">
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to home
+        </button>
+
+        <div className="text-center mb-7">
+          <div className="inline-flex w-12 h-12 rounded-2xl bg-dm-blue text-white items-center justify-center shadow-lg shadow-dm-blue/25 mb-3">
+            <BrainCircuit className="w-6 h-6" />
           </div>
-          <h1 className="text-2xl font-black text-white tracking-tight">DealMind 3.0</h1>
-          <p className="text-xs text-slate-400">
-            {isRegister ? 'Create an enterprise workspace account' : 'Sign in to access negotiation intelligence'}
-          </p>
+          <h1 className="text-2xl font-black tracking-tight text-dm-ink">Welcome back</h1>
+          <p className="text-xs text-dm-muted mt-1">Sign in to your DealMind workspace</p>
         </div>
 
-        {/* Auth Card */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 backdrop-blur-md">
+        <div className="bg-white border border-dm-border rounded-2xl shadow-card p-6 sm:p-7 space-y-4">
           {formError && (
-            <div className="p-3.5 rounded-2xl bg-rose-950/40 border border-rose-500/30 text-rose-200 text-xs flex items-start gap-2.5">
-              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+            <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
               <span className="leading-relaxed">{formError}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {isRegister && (
-              <Input
-                label="Full Name *"
-                type="text"
-                placeholder="Jane Doe"
-                icon={User}
-                value={displayName}
-                onChange={e => setDisplayName(e.target.value)}
-                required
-              />
-            )}
-
             <Input
-              label="Email Address *"
+              label="Email address"
               type="email"
-              placeholder="sales@dealmind.local"
+              placeholder="you@company.com"
               icon={Mail}
               value={email}
               onChange={e => setEmail(e.target.value)}
+              autoComplete="email"
               required
             />
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-300">Password *</label>
+              <label className="block text-xs font-bold text-dm-ink">Password</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                  <Lock className="w-4 h-4" />
-                </div>
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-dm-muted" />
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="w-full bg-slate-950/60 border border-slate-800 rounded-xl py-2 pl-9 pr-10 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 transition"
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  className="w-full bg-white border border-dm-border rounded-xl py-2.5 pl-9 pr-10 text-xs text-dm-ink focus:outline-none focus:border-dm-blue focus:ring-2 focus:ring-dm-blue/15"
                   required
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(p => !p)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-200"
-                >
+                <button type="button" onClick={() => setShowPassword(p => !p)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-dm-muted hover:text-dm-ink">
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
-            {isRegister && (
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-300">Role</label>
-                <select
-                  value={role}
-                  onChange={e => setRole(e.target.value)}
-                  className="w-full bg-slate-950/60 border border-slate-800 rounded-xl py-2 px-3 text-xs text-white focus:outline-none focus:border-indigo-500 capitalize"
-                >
-                  <option value="SALESPERSON">Sales Representative</option>
-                  <option value="MANAGER">Deal Desk Manager</option>
-                  <option value="ADMIN">System Administrator</option>
-                </select>
-              </div>
-            )}
-
-            <Button
-              type="submit"
-              loading={loading}
-              className="w-full py-2.5 mt-2"
-              variant="primary"
-            >
-              {isRegister ? 'Create Account' : 'Sign In'}
-            </Button>
+            <Button type="submit" loading={loading} size="lg" className="w-full">Sign in</Button>
           </form>
 
-          {/* Quick Demo Credentials */}
-          {!isRegister && (
-            <div className="pt-4 border-t border-slate-800 space-y-2.5">
-              <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                <Sparkles className="w-3 h-3 text-amber-400" />
-                <span>Quick Fill Demo Accounts</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { label: 'Admin', email: 'admin@dealmind.local' },
-                  { label: 'Manager', email: 'manager@dealmind.local' },
-                  { label: 'Sales Rep', email: 'sales@dealmind.local' }
-                ].map(acc => (
-                  <button
-                    key={acc.label}
-                    type="button"
-                    onClick={() => handleQuickFill(acc.email, 'Password123!')}
-                    className="p-2 rounded-xl bg-slate-950 border border-slate-800 hover:border-indigo-500/50 text-[11px] font-medium text-slate-300 hover:text-white transition text-center truncate"
-                  >
-                    {acc.label}
-                  </button>
-                ))}
-              </div>
+          <div className="pt-4 border-t border-dm-border">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-dm-muted mb-2.5">
+              <Sparkles className="w-3 h-3 text-dm-blue" /> Demo accounts
             </div>
-          )}
-
-          {/* Mode Switcher */}
-          <div className="text-center pt-2">
-            <button
-              type="button"
-              onClick={() => { setIsRegister(p => !p); setFormError(null); }}
-              className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold transition"
-            >
-              {isRegister ? 'Already have an account? Sign in' : "Need an account? Register new user"}
-            </button>
+            <div className="grid grid-cols-3 gap-2">
+              {DEMO_ACCOUNTS.map(acc => (
+                <button
+                  key={acc.label}
+                  type="button"
+                  onClick={() => { setEmail(acc.email); setPassword('Password123!'); setFormError(null); }}
+                  className="p-2 rounded-xl bg-dm-bg border border-dm-border hover:border-dm-blue/40 text-[11px] font-semibold text-dm-muted hover:text-dm-ink transition"
+                >
+                  {acc.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
+
+        <p className="text-center text-xs text-dm-muted mt-5">
+          New sales representative?{' '}
+          <button onClick={() => navigate('/signup')} className="font-bold text-dm-blue hover:text-dm-deep">
+            Create an account
+          </button>
+        </p>
       </div>
     </div>
   );

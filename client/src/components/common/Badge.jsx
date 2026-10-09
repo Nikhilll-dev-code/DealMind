@@ -10,7 +10,7 @@ export default function Badge({
 }) {
   const variants = {
     default: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700',
-    primary: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30',
+    primary: 'bg-dm-blue/15 text-dm-deep dark:text-indigo-300 border-dm-blue/30',
     success: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
     warning: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30',
     danger: 'bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30',

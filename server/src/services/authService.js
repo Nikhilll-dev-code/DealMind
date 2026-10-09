@@ -67,7 +67,7 @@ export async function registerUser({ email, password, displayName, name, role = 
   const passwordHash = await hashPassword(password);
   const userId = `USR-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
   const now = new Date().toISOString();
-  const validRole = ['ADMIN', 'MANAGER', 'SALESPERSON'].includes(role.toUpperCase()) ? role.toUpperCase() : 'SALESPERSON';
+  const validRole = ['ADMIN', 'MANAGER', 'SALESPERSON', 'CUSTOMER'].includes(role.toUpperCase()) ? role.toUpperCase() : 'SALESPERSON';
 
   db.prepare(`
     INSERT INTO users (id, tenant_id, email, password_hash, display_name, role, status, created_at, updated_at)

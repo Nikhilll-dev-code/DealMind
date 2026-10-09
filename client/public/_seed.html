@@ -1,0 +1,27 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>seed</title></head>
+<body>
+<script>
+(async () => {
+  try {
+    const params = new URLSearchParams(location.search);
+    const email = params.get('email') || 'customer@dealmind.local';
+    const target = params.get('to') || '/customer';
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: 'Password123!' })
+    });
+    const json = await res.json();
+    if (json.token) {
+      localStorage.setItem('dealmind_jwt_token', json.token);
+      location.replace(target);
+    } else {
+      document.body.textContent = 'SEED_FAILED ' + JSON.stringify(json);
+    }
+  } catch (e) {
+    document.body.textContent = 'SEED_ERROR ' + e.message;
+  }
+})();
+</script>
+</body></html>

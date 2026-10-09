@@ -172,8 +172,8 @@ export default function CounterofferAdvisor({ currentDeal, onRecordOutcome, onNa
                   </div>
                 )}
 
-                {/* Quick Outcome Action */}
-                {onRecordOutcome && (
+                {/* Quick Outcome Action for In-flight / Pending Deals */}
+                {onRecordOutcome && (!currentDeal?.outcome || currentDeal?.outcome === 'PENDING') && (
                   <div className="flex items-center gap-3 pt-1 border-t border-slate-200 dark:border-[#243048]">
                     <span className="text-[11px] text-slate-500">Record final outcome:</span>
                     <button 

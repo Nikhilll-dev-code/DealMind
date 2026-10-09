@@ -70,16 +70,17 @@ export default function PrecedentLineage({
         <div className="flex items-center gap-2 mb-1">
           <GitCommit className="w-5 h-5 text-purple-500" />
           <h2 className="text-xl font-black text-slate-900 dark:text-white">
-            Closed-Loop Precedent Lineage
+            Negotiation Patterns
           </h2>
         </div>
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          Trace how historical memories in Hindsight inform this recommendation, and how recording this deal closes the organizational learning loop.
+          Have we seen this situation before, and what happened? Trace comparable historical deals,
+          the strategies used, their outcomes and lessons, and how they inform this recommendation.
         </p>
       </div>
 
       {/* CLOSED-LOOP DIAGRAM */}
-      <Card className="p-6 bg-gradient-to-br from-slate-50 via-indigo-950/10 to-slate-50 dark:from-slate-900 dark:via-purple-950/20 dark:to-slate-900 border-purple-500/30">
+      <Card className="p-6 bg-dm-tint/40 border-dm-blue/20">
         <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2">
             <Layers className="w-4 h-4 text-purple-400" />
@@ -116,10 +117,10 @@ export default function PrecedentLineage({
           </div>
 
           {/* Node 4 */}
-          <div className="p-3 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-300 dark:border-indigo-800 flex flex-col justify-between space-y-1">
-            <span className="text-[9px] font-mono text-indigo-500 font-bold">4. SYNTHESIS</span>
-            <div className="font-bold text-indigo-700 dark:text-indigo-300 text-[11px]">Active Strategy</div>
-            <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono">{recommendation?.headline ? 'Formulated' : 'Ready'}</span>
+          <div className="p-3 rounded-2xl bg-dm-tint dark:bg-indigo-950/40 border border-dm-blue dark:border-indigo-800 flex flex-col justify-between space-y-1">
+            <span className="text-[9px] font-mono text-dm-blue font-bold">4. SYNTHESIS</span>
+            <div className="font-bold text-dm-deep dark:text-indigo-300 text-[11px]">Active Strategy</div>
+            <span className="text-[10px] text-dm-blue dark:text-indigo-400 font-mono">{recommendation?.headline ? 'Formulated' : 'Ready'}</span>
           </div>
 
           {/* Node 5 */}
@@ -160,7 +161,7 @@ export default function PrecedentLineage({
                 <span>{tab.label}</span>
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
                   filterMode === tab.id 
-                    ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-bold' 
+                    ? 'bg-dm-blue/15 text-dm-blue dark:text-indigo-400 font-bold' 
                     : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
                 }`}>
                   {tab.count}

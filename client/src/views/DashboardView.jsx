@@ -5,14 +5,14 @@ import {
   Award, 
   Database, 
   PlusCircle, 
-  Sparkles, 
   ChevronRight, 
   CheckCircle2, 
   XCircle, 
   Clock, 
   ShieldAlert,
   ArrowUpRight,
-  BrainCircuit
+  BrainCircuit,
+  Sparkles
 } from 'lucide-react';
 import { useRouter } from '../context/RouteContext';
 import { useAuth } from '../context/AuthContext';
@@ -46,17 +46,17 @@ export default function DashboardView({
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-150">
-      {/* Hero Welcome Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-indigo-900/40 via-slate-900 to-slate-900 border border-indigo-500/20 rounded-3xl p-6 sm:p-8 shadow-xl">
+      {/* Hero Welcome Banner — seamless in light and dark mode */}
+      <div className="relative overflow-hidden bg-white dark:bg-slate-900 border border-dm-border dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-card dark:shadow-none">
         <div className="max-w-2xl space-y-3 relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-xs font-bold">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-dm-tint dark:bg-indigo-950/50 border border-dm-blue/20 dark:border-indigo-800/40 text-dm-deep dark:text-indigo-300 text-xs font-bold">
+            <Sparkles className="w-3.5 h-3.5 text-dm-blue dark:text-indigo-400" />
             <span>AI Negotiation Intelligence</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            Commercial Deal Desk Workspace
+          <h1 className="text-2xl sm:text-3xl font-black text-dm-ink dark:text-white tracking-tight">
+            Sales Workspace
           </h1>
-          <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+          <p className="text-dm-muted dark:text-slate-400 text-xs sm:text-sm leading-relaxed">
             Ground every customer discount counteroffer in verified organizational memory, deterministic concession economics, and calibrated confidence models.
           </p>
 
@@ -68,36 +68,28 @@ export default function DashboardView({
             >
               + New Negotiation
             </Button>
-            <Button
-              variant="secondary"
-              icon={Sparkles}
-              onClick={() => navigate('/demo')}
-              className="text-amber-300 hover:text-amber-200 border-amber-500/20"
-            >
-              60-Second Demo
-            </Button>
           </div>
         </div>
       </div>
 
-      {/* Pending Approvals Alert Banner (Managers & Admins) */}
-      {hasRole(['ADMIN', 'MANAGER']) && pendingApprovals.length > 0 && (
+      {/* Pending Approvals Alert Banner (Admins — Two-Role spec §3, §58) */}
+      {hasRole(['ADMIN']) && pendingApprovals.length > 0 && (
         <div 
           onClick={() => navigate('/approvals')}
-          className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between cursor-pointer hover:bg-amber-500/15 transition"
+          className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 flex items-center justify-between cursor-pointer hover:bg-amber-50/80 dark:hover:bg-amber-950/40 transition"
         >
           <div className="flex items-center gap-3">
-            <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0" />
+            <ShieldAlert className="w-5 h-5 text-amber-500 shrink-0" />
             <div>
-              <div className="text-xs font-bold text-amber-300">
+              <div className="text-xs font-bold text-amber-700 dark:text-amber-300">
                 {pendingApprovals.length} Discount Escalation{pendingApprovals.length > 1 ? 's' : ''} Awaiting Review
               </div>
-              <p className="text-[11px] text-amber-200/80">
+              <p className="text-[11px] text-amber-600/90 dark:text-amber-300/80">
                 Sales reps requested concessions exceeding the 15% standard threshold policy.
               </p>
             </div>
           </div>
-          <Button variant="outline" size="sm" className="border-amber-500/30 text-amber-300">
+          <Button variant="outline" size="sm" className="border-amber-200 dark:border-amber-800/60 text-amber-700 dark:text-amber-300">
             Review Queue →
           </Button>
         </div>
@@ -111,28 +103,28 @@ export default function DashboardView({
             value: negotiations.length,
             sub: `$${(totalPipeline / 1000).toFixed(0)}k total volume`,
             icon: Briefcase,
-            color: 'text-indigo-400'
+            color: 'text-dm-blue dark:text-indigo-400'
           },
           {
             label: 'Win Rate',
             value: `${winRate}%`,
             sub: `${wonDeals.length} won / ${completedDeals.length - wonDeals.length} lost`,
             icon: Award,
-            color: 'text-emerald-400'
+            color: 'text-emerald-500 dark:text-emerald-400'
           },
           {
             label: 'Concession Saved',
             value: `$${(totalSavings / 1000).toFixed(0)}k`,
             sub: 'preserved vs requests',
             icon: TrendingUp,
-            color: 'text-blue-400'
+            color: 'text-blue-500 dark:text-blue-400'
           },
           {
             label: 'Memory Bank',
             value: memories.length || negotiations.length,
             sub: 'historical episodes',
             icon: Database,
-            color: 'text-purple-400'
+            color: 'text-purple-500 dark:text-purple-400'
           }
         ].map(({ label, value, sub, icon: Icon, color }) => (
           <Card key={label} className="p-5">
@@ -175,11 +167,11 @@ export default function DashboardView({
                     className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/60 transition cursor-pointer group"
                   >
                     <div className="flex items-center gap-3.5 min-w-0">
-                      <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400 w-16 shrink-0 truncate">
+                      <span className="font-mono text-xs font-bold text-dm-blue dark:text-indigo-400 w-16 shrink-0 truncate">
                         {dealId}
                       </span>
                       <div className="min-w-0">
-                        <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition truncate">
+                        <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-dm-blue dark:group-hover:text-indigo-400 transition truncate">
                           {deal.customer}
                         </div>
                         <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
@@ -193,7 +185,7 @@ export default function DashboardView({
                         ${dv.toLocaleString()}
                       </span>
                       <OutcomeBadge outcome={deal.outcome} />
-                      <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 transition" />
+                      <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-dm-blue dark:group-hover:text-indigo-400 transition" />
                     </div>
                   </div>
                 );
@@ -226,7 +218,7 @@ export default function DashboardView({
                     </span>
                   </div>
                   <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                    Win Rate: {evt.before_wins}W/{evt.before_losses}L → <strong className="text-emerald-500">{evt.after_wins}W/{evt.after_losses}L</strong>
+                    Win Rate: {evt.before_wins}W/{evt.before_losses}L → <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{evt.after_wins}W/{evt.after_losses}L</strong>
                   </div>
                 </div>
               ))}

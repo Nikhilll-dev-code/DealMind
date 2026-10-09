@@ -3,23 +3,38 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import MobileDrawer from './MobileDrawer';
 
-export default function AppLayout({ children, currentDeal, pendingApprovalsCount = 0 }) {
+export default function AppLayout({
+  children,
+  currentDeal,
+  activeDealId = null,
+  activeTool = null,
+  pendingApprovalsCount = 0,
+  onOpenTool = null
+}) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex h-screen w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden font-sans antialiased selection:bg-indigo-500 selection:text-white">
+    <div className="flex h-screen w-full bg-dm-bg dark:bg-slate-950 text-dm-ink dark:text-slate-100 overflow-hidden font-sans antialiased selection:bg-dm-blue selection:text-white transition-colors duration-150">
       {/* Collapsible Sidebar on Desktop */}
       <Sidebar
         collapsed={collapsed}
         onToggleCollapse={() => setCollapsed(p => !p)}
         pendingApprovalsCount={pendingApprovalsCount}
+        activeDeal={currentDeal}
+        activeDealId={activeDealId}
+        activeTool={activeTool}
+        onOpenTool={onOpenTool}
       />
 
       {/* Off-canvas Mobile Drawer */}
       <MobileDrawer
         isOpen={mobileOpen}
         onClose={() => setMobileOpen(false)}
+        activeDeal={currentDeal}
+        activeDealId={activeDealId}
+        activeTool={activeTool}
+        onOpenTool={onOpenTool}
       />
 
       {/* Main Content Area */}
@@ -29,7 +44,7 @@ export default function AppLayout({ children, currentDeal, pendingApprovalsCount
           currentDeal={currentDeal}
         />
 
-        <main className="flex-1 overflow-y-auto min-w-0 bg-slate-50 dark:bg-[#0b0f19]">
+        <main className="flex-1 overflow-y-auto min-w-0 bg-dm-bg dark:bg-slate-950 transition-colors duration-150">
           {children}
         </main>
       </div>

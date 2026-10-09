@@ -44,8 +44,9 @@ router.post('/auth/register', authLimiter, async (req, res) => {
   try {
     const { email, password, displayName, tenantId } = req.body;
     // Role is intentionally excluded from the public registration body.
-    // All self-registered users start as SALESPERSON to prevent privilege escalation.
-    // ADMIN/MANAGER roles must be assigned by a tenant ADMIN via user management.
+    // Public signup always creates a SALES REPRESENTATIVE account (the primary product
+    // persona, spec §4) to prevent privilege escalation. ADMIN/MANAGER roles must be
+    // assigned by a tenant ADMIN.
     const result = await registerUser({ email, password, displayName, role: 'SALESPERSON', tenantId });
     res.status(201).json(result);
   } catch (err) {
@@ -231,6 +232,8 @@ router.post('/negotiations/analyze', aiAnalysisLimiter, optionalAuth, async (req
 });
 
 // POST /api/negotiations/:id/simulate
+// Spec §7: simulator must operate on the CURRENT live deal and support multiple scenarios.
+// The first scenario is returned directly; additional scenarios can be requested as an array.
 router.post('/negotiations/:id/simulate', requireAuth, requirePermission(PERMISSIONS.DEALS_SIMULATE), async (req, res) => {
   try {
     const dealId = req.params.id;
@@ -243,7 +246,7 @@ router.post('/negotiations/:id/simulate', requireAuth, requirePermission(PERMISS
       return res.status(404).json({ error: `Negotiation ${dealId} not found in your tenant.`, code: 'NOT_FOUND' });
     }
 
-    const { discountPercent, contractYears, includeSupport, competitorPressure, dealValue } = req.body;
+    const { discountPercent, contractYears, includeSupport, competitorPressure, dealValue, scenarios } = req.body;
 
     if (discountPercent !== undefined && discountPercent !== null) {
       const disc = Number(discountPercent);
@@ -252,7 +255,7 @@ router.post('/negotiations/:id/simulate', requireAuth, requirePermission(PERMISS
       }
     }
 
-    const simulationResult = await simulateWhatIf(deal.deal_id, {
+    const baseScenario = {
       customer: deal.customer,
       segment: deal.segment,
       dealValue: Number(dealValue) || deal.initial_offer || 100000,
@@ -262,9 +265,38 @@ router.post('/negotiations/:id/simulate', requireAuth, requirePermission(PERMISS
       includeSupport: includeSupport !== undefined ? Boolean(includeSupport) : true,
       competitorPressure: competitorPressure !== undefined ? Boolean(competitorPressure) : Boolean(deal.competitor_pressure),
       tenantId
-    });
+    };
 
-    res.json(simulationResult);
+    const simulationResult = await simulateWhatIf(deal.deal_id, baseScenario);
+
+    // Spec §7: allow the simulator to evaluate multiple scenarios from the live deal in one call.
+    let scenarioBatch = null;
+    if (Array.isArray(scenarios) && scenarios.length > 0) {
+      const results = await Promise.all(scenarios.map(sc =>
+        simulateWhatIf(deal.deal_id, {
+          ...baseScenario,
+          discountPercent: Number(sc.discountPercent ?? baseScenario.discountPercent),
+          contractYears: Number(sc.contractYears ?? baseScenario.contractYears),
+          includeSupport: Boolean(sc.includeSupport ?? baseScenario.includeSupport)
+        })
+      ));
+      scenarioBatch = results;
+    }
+
+    res.json({
+      ...simulationResult,
+      dealSnapshot: {
+        dealId: deal.deal_id,
+        customer: deal.customer,
+        segment: deal.segment,
+        dealValue: deal.initial_offer,
+        requestedDiscountPercent: deal.requested_discount_percent,
+        currentConcessionPercent: deal.concession_percent,
+        contractYears: deal.contract_years,
+        status: deal.status
+      },
+      scenarioBatch
+    });
   } catch (err) {
     console.error('Simulation error:', err);
     res.status(500).json({ error: err.message, code: 'SIMULATION_ERROR' });
@@ -494,10 +526,41 @@ router.post('/negotiations/:id/outcome', optionalAuth, async (req, res) => {
       }
     }
 
-    const deal = db.prepare('SELECT * FROM negotiations WHERE (deal_id = ? OR id = ?) AND tenant_id = ?')
+    let deal = db.prepare('SELECT * FROM negotiations WHERE (deal_id = ? OR id = ?) AND tenant_id = ?')
       .get(dealId, dealId, effectiveTenantId);
     if (!deal) {
-      return res.status(404).json({ error: 'Negotiation not found for this tenant', code: 'NOT_FOUND' });
+      const customerName = req.body.customer || 'Customer';
+      const customerId = normalizeCustomerId(customerName);
+      const nowTime = new Date().toISOString();
+      const insert = db.prepare(`
+        INSERT OR REPLACE INTO negotiations (
+          tenant_id, deal_id, customer, customer_id, segment, industry, date, objection,
+          initial_offer, counter_offer, requested_discount_percent, strategy,
+          concession_percent, competitor_pressure, contract_years, outcome, outcome_reason, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      insert.run(
+        effectiveTenantId,
+        dealId,
+        customerName,
+        customerId,
+        req.body.segment || 'enterprise',
+        req.body.industry || 'technology',
+        nowTime.slice(0, 10),
+        req.body.objection || 'Price resistance',
+        Number(req.body.dealValue || req.body.initialOffer) || 100000,
+        Number(req.body.finalPrice || req.body.counterOffer) || 90000,
+        Number(req.body.requestedDiscountPercent) || 20,
+        chosenStrategy || req.body.strategy || 'Standard strategy',
+        Number(req.body.concessionPercent) || 10,
+        req.body.competitorPressure ? 1 : 0,
+        Number(req.body.contractYears) || 1,
+        outcome || 'WON',
+        outcomeReason || notes || '',
+        nowTime
+      );
+      deal = db.prepare('SELECT * FROM negotiations WHERE (deal_id = ? OR id = ?) AND tenant_id = ?')
+        .get(dealId, dealId, effectiveTenantId);
     }
 
     const beforeStats = evaluateConfidenceAndConflict(deal.customer, deal.segment, { tenantId: effectiveTenantId });

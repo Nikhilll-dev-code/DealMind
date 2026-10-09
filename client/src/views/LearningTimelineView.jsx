@@ -28,7 +28,7 @@ export default function LearningTimelineView() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <History className="w-6 h-6 text-indigo-500" />
+            <History className="w-6 h-6 text-dm-blue" />
             <h1 className="text-xl font-bold text-slate-900 dark:text-white">Hindsight Learning Timeline</h1>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -55,7 +55,7 @@ export default function LearningTimelineView() {
             <Card key={evt.id} className="p-6 space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
                 <div className="flex items-center gap-2.5">
-                  <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">{evt.deal_id}</span>
+                  <span className="font-mono text-xs font-bold text-dm-blue dark:text-indigo-400">{evt.deal_id}</span>
                   <span className="font-bold text-slate-900 dark:text-white text-sm">{evt.customer}</span>
                   <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                     {evt.event_type}

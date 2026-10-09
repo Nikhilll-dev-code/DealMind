@@ -52,7 +52,7 @@ export default function InfrastructureView() {
   const [checkpointError, setCheckpointError] = useState(null);
 
   // Role permissions
-  const canPerformOps = hasRole(['ADMIN', 'MANAGER']);
+  const canPerformOps = hasRole(['ADMIN']);
 
   const loadData = async () => {
     setLoading(true);
@@ -82,7 +82,7 @@ export default function InfrastructureView() {
   const executeManualSync = async () => {
     setShowSyncModal(false);
     if (!canPerformOps) {
-      toast.error('Permission Denied', 'Only ADMIN or MANAGER users can manually drain the outbox queue.');
+      toast.error('Permission Denied', 'Only ADMIN users can manually drain the outbox queue.');
       return;
     }
     setSyncing(true);
@@ -102,7 +102,7 @@ export default function InfrastructureView() {
 
   const handleRetrySingleEvent = async (eventId) => {
     if (!canPerformOps) {
-      toast.error('Permission Denied', 'Only ADMIN or MANAGER users can retry outbox events.');
+      toast.error('Permission Denied', 'Only ADMIN users can retry outbox events.');
       return;
     }
     setRetryingEventId(eventId);
@@ -224,21 +224,6 @@ export default function InfrastructureView() {
         </div>
       </div>
 
-      {/* Operational Diagnostic Banners */}
-      {health?.redis?.mode === 'in_memory_fallback' && (
-        <div className="p-4 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50/70 dark:bg-amber-950/30 flex items-start gap-3 text-xs">
-          <Info className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <div className="font-bold text-amber-900 dark:text-amber-200">
-              Redis Distributed Coordination: In-Memory Fallback Active
-            </div>
-            <p className="text-amber-800 dark:text-amber-300/90 leading-relaxed">
-              `REDIS_URL` is unconfigured. The system is operating seamlessly with a single-instance in-memory concurrency semaphore and local token rate-limiting. Multi-worker clusters require Redis connection string.
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* 5 Core Services Status Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
         {/* Backend API */}
@@ -266,7 +251,7 @@ export default function InfrastructureView() {
             <Card className="p-4 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">SQLite Storage</span>
-                <HardDrive className="w-4 h-4 text-indigo-400" />
+                <HardDrive className="w-4 h-4 text-dm-blue" />
               </div>
               <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -506,7 +491,7 @@ export default function InfrastructureView() {
               {[
                 { label: 'Retain', key: 'retain', color: 'text-purple-600 dark:text-purple-400' },
                 { label: 'Recall', key: 'recall', color: 'text-blue-600 dark:text-blue-400' },
-                { label: 'Reflect', key: 'reflect', color: 'text-indigo-600 dark:text-indigo-400' },
+                { label: 'Reflect', key: 'reflect', color: 'text-dm-blue dark:text-indigo-400' },
                 { label: 'Cache Hits', key: 'cacheHits', color: 'text-emerald-600 dark:text-emerald-400' },
               ].map(({ label, key, color }) => {
                 const op = hindsightTelemetry.operations?.[key] ?? hindsightTelemetry[key] ?? {};
@@ -557,10 +542,10 @@ export default function InfrastructureView() {
       <Card className="p-6 space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
           <div className="flex items-center gap-2">
-            <Activity className="w-4 h-4 text-indigo-500" />
+            <Activity className="w-4 h-4 text-dm-blue" />
             <h3 className="font-bold text-slate-900 dark:text-white text-sm">Agent Checkpoint Recovery Inspector</h3>
           </div>
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold">
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-dm-blue/10 text-dm-blue dark:text-indigo-400 font-bold">
             SQLite agent_checkpoints Table
           </span>
         </div>
@@ -612,7 +597,7 @@ export default function InfrastructureView() {
               </div>
               <div>
                 <span className="text-[10px] text-slate-400 block uppercase font-bold">Completed Tools</span>
-                <span className="font-mono text-indigo-500">{inspectedCheckpoint.completedTools?.length || 0} executed</span>
+                <span className="font-mono text-dm-blue">{inspectedCheckpoint.completedTools?.length || 0} executed</span>
               </div>
               <div>
                 <span className="text-[10px] text-slate-400 block uppercase font-bold">Updated At</span>

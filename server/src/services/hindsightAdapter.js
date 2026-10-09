@@ -246,9 +246,20 @@ export async function retainNegotiationMemory(deal, tenantId = 'tenant_default')
  */
 export async function syncHindsightOutbox(tenantId = null, options = {}) {
   const client = getHindsightClient();
-  if (!client) return { synced: 0, pending: 0, processed: 0 };
-
   const includeFailed = options.includeFailed || options.retryFailed || false;
+
+  if (!client) {
+    if (includeFailed) {
+      let q = "UPDATE hindsight_outbox SET status = 'PENDING', attempts = 0, last_error = NULL, updated_at = ? WHERE status = 'FAILED'";
+      const p = [new Date().toISOString()];
+      if (tenantId) {
+        q += " AND tenant_id = ?";
+        p.push(tenantId);
+      }
+      db.prepare(q).run(...p);
+    }
+    return { synced: 0, pending: 0, processed: 0 };
+  }
 
   let query = "SELECT * FROM hindsight_outbox WHERE (status = 'PENDING' AND attempts < max_attempts)";
   if (includeFailed) {
@@ -323,7 +334,10 @@ export async function retryOutboxEvent(eventId, tenantId = null) {
   }
 
   if (!client) {
-    return { success: false, mode: 'sqlite_local', message: 'Hindsight client not configured' };
+    db.prepare("UPDATE hindsight_outbox SET status = 'PENDING', attempts = 0, last_error = NULL, updated_at = ? WHERE id = ?")
+      .run(new Date().toISOString(), item.id);
+    const updated = db.prepare('SELECT * FROM hindsight_outbox WHERE id = ?').get(item.id);
+    return { success: false, mode: 'sqlite_local', message: 'Hindsight client not configured', record: updated };
   }
 
   try {
@@ -405,9 +419,13 @@ export async function recallNegotiationMemories(queryStr, filterObj = {}) {
 
   if (client) {
     try {
-      const response = await client.recall(config.hindsightBankId, queryStr, {
+      const recallPromise = client.recall(config.hindsightBankId, queryStr, {
         budget: 'mid'
       });
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('HINDSIGHT_TIMEOUT')), 600)
+      );
+      const response = await Promise.race([recallPromise, timeoutPromise]);
 
       recordTelemetryOp('RECALL', 'api_success', Date.now() - startTime);
 
@@ -561,7 +579,11 @@ export async function reflectNegotiationSynthesis(queryStr, tenantId = 'tenant_d
     };
   }
   try {
-    const res = await client.reflect(config.hindsightBankId, `[Tenant: ${tenantId}] ${queryStr}`, { budget: 'low' });
+    const reflectPromise = client.reflect(config.hindsightBankId, `[Tenant: ${tenantId}] ${queryStr}`, { budget: 'low' });
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('HINDSIGHT_TIMEOUT')), 600)
+    );
+    const res = await Promise.race([reflectPromise, timeoutPromise]);
     const rawText = res.text || res.answer || (typeof res === 'string' ? res : JSON.stringify(res));
     const cleanSynthesis = formatStrategicReflection(rawText);
     recordTelemetryOp('REFLECT', 'api_success', Date.now() - startTime);

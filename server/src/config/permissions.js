@@ -22,13 +22,35 @@ export const PERMISSIONS = {
   INFRASTRUCTURE_VIEW: 'infrastructure:view',
   INFRASTRUCTURE_MANAGE_OUTBOX: 'infrastructure:manage_outbox',
 
+  // Dataset Intelligence (spec §7)
+  DATASET_VIEW: 'dataset:view',
+  DATASET_MANAGE: 'dataset:manage',
+
+  // Company Guardrails (spec §9)
+  GUARDRAILS_VIEW: 'guardrails:view',
+  GUARDRAILS_MANAGE: 'guardrails:manage',
+
+  // Analytics & Governance (spec §6)
+  ANALYTICS_VIEW: 'analytics:view',
+
   // Tenant Admin & Lifecycle
   DATABASE_RESET: 'database:reset',
   USERS_MANAGE: 'users:manage',
   AUDIT_VIEW: 'audit:view'
 };
 
-// Base permissions shared by all authenticated sales representatives
+// Customer permissions: a buyer negotiating directly with DealMind.
+// Deliberately excludes memory explorer, dataset, guardrails, analytics,
+// infrastructure, approvals, and other customers' data (spec §2, §5).
+const CUSTOMER_PERMISSIONS = [
+  PERMISSIONS.DEALS_CREATE,
+  PERMISSIONS.DEALS_ANALYZE,
+  PERMISSIONS.DEALS_VIEW,
+  PERMISSIONS.DEALS_SIMULATE,
+  PERMISSIONS.DEALS_RECORD_OUTCOME
+];
+
+// Base permissions shared by all Sales Representatives (Two-Role spec §2).
 const SALESPERSON_PERMISSIONS = [
   PERMISSIONS.DEALS_CREATE,
   PERMISSIONS.DEALS_ANALYZE,
@@ -40,28 +62,45 @@ const SALESPERSON_PERMISSIONS = [
   PERMISSIONS.APPROVALS_VIEW
 ];
 
-// Manager permissions: Salesperson capabilities + approval decision authority + outbox management + infrastructure view
-const MANAGER_PERMISSIONS = [
+// Admin permissions: everything organizational (Two-Role spec §2, §38).
+// Admin is now also the approval authority (spec §3, §58) — there is no Manager role.
+const ADMIN_PERMISSIONS = [
   ...SALESPERSON_PERMISSIONS,
   PERMISSIONS.APPROVALS_DECIDE,
   PERMISSIONS.INFRASTRUCTURE_VIEW,
   PERMISSIONS.INFRASTRUCTURE_MANAGE_OUTBOX,
-  PERMISSIONS.AUDIT_VIEW
-];
-
-// Admin permissions: Manager capabilities + tenant database reset and user management
-const ADMIN_PERMISSIONS = [
-  ...MANAGER_PERMISSIONS,
+  PERMISSIONS.DATASET_VIEW,
+  PERMISSIONS.DATASET_MANAGE,
+  PERMISSIONS.GUARDRAILS_VIEW,
+  PERMISSIONS.GUARDRAILS_MANAGE,
+  PERMISSIONS.ANALYTICS_VIEW,
+  PERMISSIONS.AUDIT_VIEW,
   PERMISSIONS.DATABASE_RESET,
   PERMISSIONS.USERS_MANAGE
 ];
 
 export const ROLE_PERMISSIONS_MAP = {
+  CUSTOMER: new Set(CUSTOMER_PERMISSIONS),
   SALESPERSON: new Set(SALESPERSON_PERMISSIONS),
   SALES_REP: new Set(SALESPERSON_PERMISSIONS),
-  MANAGER: new Set(MANAGER_PERMISSIONS),
+  // MANAGER is kept only as a legacy alias of SALESPERSON so pre-existing tokens
+  // and rows do not break; no Manager capabilities remain (Two-Role spec §3, §102).
+  MANAGER: new Set(SALESPERSON_PERMISSIONS),
   ADMIN: new Set(ADMIN_PERMISSIONS)
 };
+
+/**
+ * Role family for hard application separation (DealMind 3.0 Two-Role spec §4, §18).
+ * ADMIN  -> Admin console (organizational intelligence/control).
+ * CUSTOMER -> legacy customer-negotiation app (kept for compatibility, not primary).
+ * everything else (SALESPERSON/MANAGER) -> Sales Representative workspace.
+ */
+export function getRoleFamily(role) {
+  const normalized = String(role || '').toUpperCase();
+  if (normalized === 'ADMIN') return 'ADMIN';
+  if (normalized === 'CUSTOMER') return 'CUSTOMER';
+  return 'SALES';
+}
 
 /**
  * Check whether a role possesses a specific permission

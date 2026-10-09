@@ -137,10 +137,18 @@ export async function createNegotiation(dealData) {
   });
 }
 
-export async function recordOutcome(dealId, outcomeData) {
-  return request(`/negotiations/${dealId}/outcome`, {
+export async function recordOutcome(dealIdOrPayload, maybeOutcomeData) {
+  let dealId = dealIdOrPayload;
+  let payload = maybeOutcomeData || {};
+
+  if (typeof dealIdOrPayload === 'object' && dealIdOrPayload !== null) {
+    dealId = dealIdOrPayload.dealId || dealIdOrPayload.deal_id;
+    payload = dealIdOrPayload;
+  }
+
+  return request(`/negotiations/${encodeURIComponent(dealId)}/outcome`, {
     method: 'POST',
-    body: JSON.stringify(outcomeData)
+    body: JSON.stringify(payload)
   });
 }
 
@@ -230,7 +238,101 @@ export async function getHindsightTelemetry() {
   return request('/hindsight/telemetry');
 }
 
-// ── 6. DEMO MANAGEMENT ──────────────────────────────────────────────
+// ── 6. CUSTOMER NEGOTIATION FLOW (spec §5) ──────────────────────────
+
+export async function getCustomerOverview() {
+  return request('/customer/overview');
+}
+
+export async function getCustomerNegotiations() {
+  return request('/customer/negotiations');
+}
+
+export async function getCustomerNegotiation(dealId) {
+  return request(`/customer/negotiations/${encodeURIComponent(dealId)}`);
+}
+
+export async function startCustomerNegotiation(dealData) {
+  return request('/customer/negotiations', {
+    method: 'POST',
+    body: JSON.stringify(dealData)
+  });
+}
+
+export async function customerCounteroffer(dealId, newCounterOffer, notes = '') {
+  return request(`/customer/negotiations/${encodeURIComponent(dealId)}/counteroffer`, {
+    method: 'POST',
+    body: JSON.stringify({ newCounterOffer, notes })
+  });
+}
+
+export async function acceptAgreement(dealId, data = {}) {
+  return request(`/customer/negotiations/${encodeURIComponent(dealId)}/accept`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+}
+
+export async function getCustomerAgreements() {
+  return request('/customer/agreements');
+}
+
+export async function getCustomerGuardrails() {
+  return request('/customer/guardrails');
+}
+
+// ── 7. ADMIN GOVERNANCE: GUARDRAILS + DATASET (spec §7, §9) ─────────
+
+export async function getGuardrails() {
+  return request('/guardrails');
+}
+
+export async function updateGuardrails(guardrails) {
+  return request('/guardrails', {
+    method: 'PUT',
+    body: JSON.stringify(guardrails)
+  });
+}
+
+export async function validateDataset(content, format = 'json', filename = 'dataset') {
+  return request('/dataset/validate', {
+    method: 'POST',
+    body: JSON.stringify({ content, format, filename })
+  });
+}
+
+export async function importDataset(content, format = 'auto', filename = 'dataset', replaceExisting = true) {
+  return request('/dataset/import', {
+    method: 'POST',
+    body: JSON.stringify({ content, format, filename, replaceExisting })
+  });
+}
+
+export async function getDatasetImports() {
+  return request('/dataset/imports');
+}
+
+// ── 7b. COMPANY USER MANAGEMENT (spec §6) ───────────────────────────
+
+export async function getUsers() {
+  return request('/users');
+}
+
+export async function createUser(userData) {
+  return request('/users', {
+    method: 'POST',
+    body: JSON.stringify(userData)
+  });
+}
+
+export async function setUserStatus(userId, status) {
+  return request(`/users/${encodeURIComponent(userId)}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status })
+  });
+}
+
+// ── 8. DEMO MANAGEMENT ──────────────────────────────────────────────
 
 export async function resetDemo() {
   return request('/demo/reset', { method: 'POST' });
