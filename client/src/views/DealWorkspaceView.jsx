@@ -21,7 +21,8 @@ import {
   Radio,
   ArrowRightLeft,
   GitCommit,
-  Scale
+  Scale,
+  BarChart3
 } from 'lucide-react';
 import { useRouter } from '../context/RouteContext';
 import { useAuth } from '../context/AuthContext';
@@ -39,6 +40,7 @@ import OutcomeRecorder from '../components/OutcomeRecorder';
 import GiveGetPanel from '../components/GiveGetPanel';
 import PrecedentLineage from '../components/PrecedentLineage';
 import EvidenceConflictMatrix from '../components/EvidenceConflictMatrix';
+import DealVisualAnalytics from '../components/DealVisualAnalytics';
 
 function EvidenceCard({ mem }) {
   const [expanded, setExpanded] = useState(false);
@@ -196,6 +198,7 @@ export default function DealWorkspaceView({
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: Brain },
+    { id: 'analytics', label: 'Visual Analytics', icon: BarChart3 },
     { id: 'give-get', label: 'Give-Get Intelligence', icon: ArrowRightLeft, badge: giveGetOptions?.recommendations?.length || 5 },
     { id: 'lineage', label: 'Negotiation Patterns', icon: GitCommit, badge: memories.length },
     { id: 'conflict-matrix', label: 'Conflict Matrix', icon: Scale, badge: evidenceConflictMatrix?.hasConflict ? '!' : undefined },
@@ -438,6 +441,14 @@ export default function DealWorkspaceView({
             </Card>
           </div>
 
+          {/* Visual Analytics & Scenario Charts */}
+          <DealVisualAnalytics 
+            deal={deal} 
+            economics={economics} 
+            confidence={confidence} 
+            memories={memories} 
+          />
+
           {/* Recalled Memories Summary */}
           <Card className="p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
@@ -462,6 +473,18 @@ export default function DealWorkspaceView({
               </div>
             )}
           </Card>
+        </div>
+      )}
+
+      {/* SUB-TAB: Visual Analytics */}
+      {workspaceTab === 'analytics' && (
+        <div className="space-y-6">
+          <DealVisualAnalytics 
+            deal={deal} 
+            economics={economics} 
+            confidence={confidence} 
+            memories={memories} 
+          />
         </div>
       )}
 
