@@ -46,6 +46,8 @@ export function normalizeCustomerId(name) {
   if (!name) return 'unknown';
   const clean = name.toLowerCase().trim();
   if (clean.includes('acme')) return 'acme-corp';
+  if (clean.includes('techsoft')) return 'techsoft';
+  if (clean.includes('abc bank') || clean.includes('abc-bank')) return 'abc-bank';
   if (clean.includes('globex')) return 'globex-inc';
   if (clean.includes('novatech')) return 'novatech';
   if (clean.includes('brightworks')) return 'brightworks';

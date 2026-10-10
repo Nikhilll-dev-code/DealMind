@@ -1067,7 +1067,7 @@ test('31. Tenant Isolation & Tenant-Scoped Admin Reset (Other Tenants Untouched)
   assert.equal(resetRes.tenantId, primaryTenant);
 
   const primaryCount = db.prepare('SELECT count(*) as cnt FROM negotiations WHERE tenant_id = ?').get(primaryTenant).cnt;
-  assert.equal(primaryCount, 16, 'Primary tenant should have 16 canonical seed episodes');
+  assert.equal(primaryCount, 29, 'Primary tenant should have 29 canonical seed episodes');
 
   // Secondary tenant data must remain completely intact
   const afterSecCount = db.prepare(`SELECT count(*) as cnt FROM negotiations WHERE tenant_id = ?`).get(secondaryTenant).cnt;
