@@ -8,13 +8,36 @@ import { config } from '../config.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Ensure data directory exists
-const dbDir = path.dirname(config.sqlitePath);
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
+// Ensure data directory exists with safe fallback if configured path is not writable
+let activeSqlitePath = config.sqlitePath;
+try {
+  const dbDir = path.dirname(activeSqlitePath);
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+} catch (err) {
+  console.warn(`[Database] Cannot write to ${config.sqlitePath} (${err.message}). Falling back to local data directory.`);
+  activeSqlitePath = path.join(__dirname, '../../data/dealmind.sqlite');
+  const fallbackDir = path.dirname(activeSqlitePath);
+  if (!fs.existsSync(fallbackDir)) {
+    fs.mkdirSync(fallbackDir, { recursive: true });
+  }
 }
 
-export const db = new Database(config.sqlitePath);
+let dbInstance;
+try {
+  dbInstance = new Database(activeSqlitePath);
+} catch (err) {
+  console.warn(`[Database] Failed opening ${activeSqlitePath} (${err.message}). Falling back to internal data directory.`);
+  activeSqlitePath = path.join(__dirname, '../data/dealmind.sqlite');
+  const fallbackDir = path.dirname(activeSqlitePath);
+  if (!fs.existsSync(fallbackDir)) {
+    fs.mkdirSync(fallbackDir, { recursive: true });
+  }
+  dbInstance = new Database(activeSqlitePath);
+}
+
+export const db = dbInstance;
 
 // Enable WAL mode for high concurrency
 db.pragma('journal_mode = WAL');
