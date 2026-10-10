@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 // The real server config lives in server/.env by default.
 // Allow an explicit SERVER_ENV to point at a different env file when needed.
 const explicitServerEnv = process.env.SERVER_ENV_FILE || process.env.SERVER_ENV;
-if (explicitServerEnv) {
+if (explicitServerEnv) {  
   dotenv.config({ path: explicitServerEnv });
 } else {
   // Check server/.env (parent of src) and fallback to .env in cwd/src
