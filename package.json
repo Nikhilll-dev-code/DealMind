@@ -14,5 +14,8 @@
     "start:client": "npm run start --prefix client",
     "test:server": "npm test --prefix server",
     "build:client": "npm run build --prefix client"
+  },
+  "engines": {
+    "node": ">=20.0.0 <=22.x"
   }
 }

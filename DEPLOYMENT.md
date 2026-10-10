@@ -144,9 +144,47 @@ npm run build
 
 ---
 
-## 6. Observability & Health Check
+## 6. 🌐 1-Click Cloud Deployment (Render / Railway / VPS)
+
+Because the Express server automatically serves the built frontend from `client/dist`, DealMind can be deployed as a **single unified service** with 0 configuration hassles.
+
+### Option A: Deploying on Render (Recommended)
+
+1. Create a new **Web Service** on [render.com](https://render.com) connected to your Git repository.
+2. Configure settings:
+   - **Environment**: `Node`
+   - **Build Command**:
+     ```bash
+     npm install && npm run build --prefix client
+     ```
+   - **Start Command**:
+     ```bash
+     npm run start --prefix server
+     ```
+3. Set **Environment Variables**:
+   - `GROQ_API_KEY`: Your Groq API Key (`gsk_...`)
+   - `HINDSIGHT_API_KEY`: Your Hindsight API Key (`hsk_...`)
+   - `HINDSIGHT_BANK_ID`: `dealmind`
+   - `HINDSIGHT_BASE_URL`: `https://api.hindsight.vectorize.io`
+   - `JWT_SECRET`: A secure random 32+ character string
+   - `NODE_ENV`: `production`
+4. Deploy! Your app will be live at `https://your-service.onrender.com`.
+
+---
+
+### Option B: Deploying on Railway
+
+1. Click **New Project** $\rightarrow$ **Deploy from GitHub repo** on [railway.app](https://railway.app).
+2. Set the **Build Command**: `npm install && npm run build --prefix client`
+3. Set the **Start Command**: `npm run start --prefix server`
+4. Add the same Environment Variables (`GROQ_API_KEY`, `HINDSIGHT_API_KEY`, `JWT_SECRET`, `HINDSIGHT_BANK_ID`).
+5. Generate a Public Domain and launch!
+
+---
+
+## 7. Observability & Health Check
 
 - **Health Endpoint**: `GET /api/health`
   Returns server uptime, SQLite connection status, Redis distributed mode status, Groq multi-model router cooldowns, and Hindsight cloud connectivity.
-- **SSE Stream**: `GET /api/negotiate/stream?sessionId=<id>`
+- **SSE Stream**: `GET /api/negotiations/stream/:sessionId`
   Streams live agent reasoning steps with sequence numbers, step timing, and support for `Last-Event-ID` reconnection replay buffer.
