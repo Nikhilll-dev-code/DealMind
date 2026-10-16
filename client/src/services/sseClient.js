@@ -7,7 +7,10 @@ export function connectAgentStream(sessionId, { onEvent, onConnected, onError, o
     return { close: () => {} };
   }
 
-  const url = `/api/negotiations/stream/${encodeURIComponent(sessionId)}`;
+  const baseUrl = import.meta.env.VITE_API_URL 
+    ? import.meta.env.VITE_API_URL.replace(/\/$/, '') 
+    : '';
+  const url = `${baseUrl}/api/negotiations/stream/${encodeURIComponent(sessionId)}`;
   const eventSource = new EventSource(url);
 
   eventSource.addEventListener('connected', (e) => {
