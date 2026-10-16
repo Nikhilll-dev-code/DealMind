@@ -9,7 +9,9 @@
   ],
   "scripts": {
     "start": "npm run start --prefix server",
-    "build": "npm run build --prefix client",
+    "build": "npm rebuild better-sqlite3 --prefix server && npm run build --prefix client",
+    "rebuild:server": "npm rebuild better-sqlite3 --prefix server",
+    "postinstall": "npm rebuild better-sqlite3 --prefix server",
     "dev": "npm run start:client",
     "start:server": "npm run start --prefix server",
     "start:client": "npm run start --prefix client",

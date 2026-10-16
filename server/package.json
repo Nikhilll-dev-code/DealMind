@@ -7,7 +7,9 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "test": "node --test"
+    "test": "node --test",
+    "rebuild": "npm rebuild better-sqlite3",
+    "postinstall": "npm rebuild better-sqlite3"
   },
   "dependencies": {
     "@vectorize-io/hindsight-client": "^0.10.1",

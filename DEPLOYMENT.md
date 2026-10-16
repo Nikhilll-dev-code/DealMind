@@ -155,19 +155,26 @@ Because the Express server automatically serves the built frontend from `client/
    - **Environment**: `Node`
    - **Build Command**:
      ```bash
-     npm install && npm run build --prefix client
+     npm install && npm run build
      ```
    - **Start Command**:
      ```bash
      npm run start --prefix server
      ```
 3. Set **Environment Variables**:
+   - `NODE_VERSION`: `22` (Ensures Node.js 22 LTS is used for build and runtime)
    - `GROQ_API_KEY`: Your Groq API Key (`gsk_...`)
    - `HINDSIGHT_API_KEY`: Your Hindsight API Key (`hsk_...`)
    - `HINDSIGHT_BANK_ID`: `dealmind`
    - `HINDSIGHT_BASE_URL`: `https://api.hindsight.vectorize.io`
    - `JWT_SECRET`: A secure random 32+ character string
    - `NODE_ENV`: `production`
+
+> [!IMPORTANT]
+> **If you see `ERR_DLOPEN_FAILED` or `NODE_MODULE_VERSION mismatch`:**
+> Render caches previous `node_modules` builds. To clear the old cache:
+> In the Render dashboard, click **"Manual Deploy"** (top right) $\rightarrow$ **"Clear build cache & deploy"**. This forces Render to recompile native modules fresh under Node.js 22.
+
 4. Deploy! Your app will be live at `https://your-service.onrender.com`.
 
 ---

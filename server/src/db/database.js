@@ -28,6 +28,12 @@ let dbInstance;
 try {
   dbInstance = new Database(activeSqlitePath);
 } catch (err) {
+  if (err.message && (err.message.includes('NODE_MODULE_VERSION') || err.message.includes('different Node.js version') || err.code === 'ERR_DLOPEN_FAILED')) {
+    console.error(`[Database CRITICAL] better-sqlite3 native binary version mismatch:`);
+    console.error(err.message);
+    console.error(`[Database CRITICAL] To resolve on Render: Click 'Manual Deploy' -> 'Clear build cache & deploy'.`);
+    throw err;
+  }
   console.warn(`[Database] Failed opening ${activeSqlitePath} (${err.message}). Falling back to internal data directory.`);
   activeSqlitePath = path.join(__dirname, '../data/dealmind.sqlite');
   const fallbackDir = path.dirname(activeSqlitePath);
